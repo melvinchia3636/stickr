@@ -14,7 +14,7 @@ import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { PackWithStickers } from '@/types'
 import { useTheme } from 'react-native-paper'
 
-import WhatsAppSection from './components/WhatsAppSection'
+import WhatsAppSection from '../../components/WhatsAppSection'
 import useHeaderMenu from './hooks/useHeaderMenu'
 
 export default function PackDetailScreen() {
@@ -24,7 +24,6 @@ export default function PackDetailScreen() {
   const t = useTheme()
 
   const [pack, setPack] = useState<PackWithStickers | null>(null)
-  const { openAlert } = useAlertStore()
   const [menuVisible, setMenuVisible] = useState(false)
 
   useEffect(() => {
@@ -47,17 +46,7 @@ export default function PackDetailScreen() {
     menuVisible,
     setMenuVisible,
     pack,
-    onDelete: () =>
-      openAlert({
-        title: 'Delete Pack',
-        message: `Are you sure you want to delete "${pack?.name}"?`,
-        icon: 'alert',
-        iconColor: t.colors.error,
-        actions: [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: handleDelete }
-        ]
-      })
+    onDelete: handleDelete
   })
 
   if (!pack) {

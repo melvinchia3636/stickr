@@ -22,9 +22,16 @@ function initDatabase(): void {
       tray_image_file TEXT,
       image_data_version TEXT DEFAULT '1',
       created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      sigstick_id TEXT
     )
   `)
+
+  try {
+    db.execute('ALTER TABLE sticker_packs ADD COLUMN sigstick_id TEXT')
+  } catch (e) {
+    // Column already exists, ignore error
+  }
 
   db.execute(`
     CREATE TABLE IF NOT EXISTS stickers (
@@ -35,6 +42,13 @@ function initDatabase(): void {
       accessibility_text TEXT DEFAULT '',
       sort_order INTEGER NOT NULL,
       FOREIGN KEY (pack_id) REFERENCES sticker_packs(id) ON DELETE CASCADE
+    )
+  `)
+
+  db.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     )
   `)
 }

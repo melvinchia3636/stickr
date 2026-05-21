@@ -11,11 +11,13 @@ import SigStickSearchCard from './SigStickSearchCard'
 export default function SigStickSearchResults({
   results,
   loading,
-  searched
+  searched,
+  downloadedIds
 }: {
   results: SigStickSearchResult[]
   loading: boolean
   searched: boolean
+  downloadedIds: Set<string>
 }) {
   if (loading) {
     return <LoadingScreen message="Searching..." />
@@ -28,8 +30,18 @@ export default function SigStickSearchResults({
   return (
     <FlatList
       data={results}
-      renderItem={({ item }) => <SigStickSearchCard item={item} />}
-      keyExtractor={item => item.id}
+      extraData={downloadedIds}
+      renderItem={function ({ item }) {
+        return (
+          <SigStickSearchCard
+            item={item}
+            isDownloaded={downloadedIds.has(String(item.id))}
+          />
+        )
+      }}
+      keyExtractor={function (item) {
+        return item.id
+      }}
       numColumns={2}
       contentContainerStyle={{ padding: 12 }}
       columnWrapperStyle={{ gap: 12 }}

@@ -29,7 +29,8 @@ const SCREENS: {
   { name: 'edit-pack/index', title: 'Edit Pack', modal: true },
   { name: 'sigstick-search/index', title: 'Browse SigStick', modal: true },
   { name: 'sigstick-result/index', title: 'Pack Details' },
-  { name: 'pack-detail/index', title: 'Pack Details' }
+  { name: 'pack-detail/index', title: 'Pack Details' },
+  { name: 'settings/index', title: 'Settings' }
 ]
 
 export default function Layout() {

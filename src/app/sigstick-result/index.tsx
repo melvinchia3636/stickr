@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 
 import { ScrollView, View } from 'react-native'
 
@@ -8,9 +8,12 @@ import { useAlertStore } from '@/components/AlertManager'
 import LoadingScreen from '@/components/LoadingScreen'
 import StickerGrid from '@/components/StickerGrid'
 import StickerPackHeader from '@/components/StickerPackHeader'
+import { getPackWithStickersBySigstickId } from '@/database/packRepository'
 import { getStickerPackDetail } from '@/services/sigstickApi'
+import type { PackWithStickers } from '@/types'
 import { useTheme } from 'react-native-paper'
 
+import WhatsAppSection from '../../components/WhatsAppSection'
 import SigStickerDownloader from './components/SigStickerDownloader'
 
 export default function SigStickResultScreen() {
@@ -22,44 +25,49 @@ export default function SigStickResultScreen() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [packTitle, setPackTitle] = useState('')
   const [loading, setLoading] = useState(true)
+  const [downloadedPack, setDownloadedPack] = useState<PackWithStickers | null>(
+    null
+  )
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const detail = await getStickerPackDetail(packId)
-        setStickerUrls(detail.stickers)
-        setPackTitle(detail.title)
-        setCoverUrl(detail.coverUrl)
-      } catch (e: any) {
-        openAlert({
-          title: 'Error',
-          message: e.message || 'Failed to load pack',
-          icon: 'alert',
-          actions: [{ text: 'OK' }]
-        })
-      }
-      setLoading(false)
-    })()
-  }, [])
+  const checkDownloaded = useCallback(
+    function () {
+      const pack = getPackWithStickersBySigstickId(packId)
+      setDownloadedPack(pack)
+    },
+    [packId]
+  )
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const detail = await getStickerPackDetail(packId)
-        setStickerUrls(detail.stickers)
-        setPackTitle(detail.title)
-        setCoverUrl(detail.coverUrl)
-      } catch (e: any) {
-        openAlert({
-          title: 'Error',
-          message: e.message || 'Failed to load pack',
-          icon: 'alert',
-          actions: [{ text: 'OK' }]
-        })
+  useEffect(
+    function () {
+      let active = true
+      async function loadData() {
+        try {
+          const detail = await getStickerPackDetail(packId)
+          if (!active) return
+          setStickerUrls(detail.stickers)
+          setPackTitle(detail.title)
+          setCoverUrl(detail.coverUrl)
+        } catch (e: any) {
+          if (!active) return
+          openAlert({
+            title: 'Error',
+            message: e.message || 'Failed to load pack',
+            icon: 'alert',
+            actions: [{ text: 'OK' }]
+          })
+        }
+        if (active) {
+          setLoading(false)
+        }
       }
-      setLoading(false)
-    })()
-  }, [])
+      loadData()
+      checkDownloaded()
+      return function () {
+        active = false
+      }
+    },
+    [packId, checkDownloaded]
+  )
 
   if (loading) {
     return <LoadingScreen message="Loading pack..." />
@@ -74,23 +82,31 @@ export default function SigStickResultScreen() {
           imageUri={coverUrl}
         />
         <StickerGrid
-          stickers={stickerUrls.map((url, i) => ({
-            id: `${i}`,
-            packId: packId,
-            imageFileName: url,
-            emojis: '',
-            accessibilityText: '',
-            sortOrder: i
-          }))}
+          stickers={stickerUrls.map(function (url, i) {
+            return {
+              id: `${i}`,
+              packId: packId,
+              imageFileName: url,
+              emojis: '',
+              accessibilityText: '',
+              sortOrder: i
+            }
+          })}
           identifier={packId}
           padding={16}
         />
       </ScrollView>
-      <SigStickerDownloader
-        packTitle={packTitle}
-        stickerUrls={stickerUrls}
-        coverUrl={coverUrl}
-      />
+      {downloadedPack ? (
+        <WhatsAppSection pack={downloadedPack} />
+      ) : (
+        <SigStickerDownloader
+          packTitle={packTitle}
+          stickerUrls={stickerUrls}
+          coverUrl={coverUrl}
+          sigstickId={packId}
+          onDownloaded={checkDownloaded}
+        />
+      )}
     </View>
   )
 }

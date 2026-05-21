@@ -1,61 +1,52 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 
 import { View } from 'react-native'
 
-import { useAlertStore } from '@/components/AlertManager'
-import { searchStickerPacks } from '@/services/sigstickApi'
-import type { SigStickSearchResult } from '@/types'
-import { TextInput, useTheme } from 'react-native-paper'
+import { useFocusEffect } from 'expo-router'
 
+import { getAllPacks } from '@/database/packRepository'
+import type { SigStickSearchResult } from '@/types'
+import { useTheme } from 'react-native-paper'
+
+import SearchBar from './components/SearchBar'
 import SigStickSearchResults from './components/SigStickSearchResults'
 
 export default function SigStickSearchScreen() {
   const t = useTheme()
-  const { openAlert } = useAlertStore()
-  const [query, setQuery] = useState('')
   const [results, setResults] = useState<SigStickSearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set())
 
-  const handleSearch = async () => {
-    const trimmed = query.trim()
-    if (!trimmed) return
-    setLoading(true)
-    setSearched(true)
-    try {
-      const packs = await searchStickerPacks(trimmed)
-      setResults(packs)
-    } catch (e: any) {
-      openAlert({
-        title: 'Error',
-        message: e.message || 'Failed to search',
-        icon: 'alert',
-        iconColor: t.colors.error,
-        actions: [{ text: 'OK' }]
-      })
-      setResults([])
-    }
-    setLoading(false)
-  }
+  const loadDownloadedPacks = useCallback(() => {
+    const all = getAllPacks()
+    setDownloadedIds(
+      new Set(
+        all
+          .map(p => (p.sigstickId ? String(p.sigstickId) : null))
+          .filter((id): id is string => !!id)
+      )
+    )
+  }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDownloadedPacks()
+    }, [loadDownloadedPacks])
+  )
 
   return (
     <View style={{ flex: 1, backgroundColor: t.colors.background }}>
-      <View style={{ padding: 12, gap: 8 }}>
-        <TextInput
-          mode="outlined"
-          placeholder="Search sticker packs..."
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-          style={{ backgroundColor: t.colors.surface }}
-          left={<TextInput.Icon icon="magnify" onPress={handleSearch} />}
-        />
-      </View>
+      <SearchBar
+        onResults={setResults}
+        onLoadingChange={setLoading}
+        onSearchedChange={setSearched}
+      />
       <SigStickSearchResults
         results={results}
         loading={loading}
         searched={searched}
+        downloadedIds={downloadedIds}
       />
     </View>
   )

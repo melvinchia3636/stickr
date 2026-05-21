@@ -22,6 +22,29 @@ function getApiBaseUrl(): string {
 
 const TRAY_FILE_NAME = 'tray_icon.png'
 
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = 30000
+): Promise<Response> {
+  const controller = new AbortController()
+  const id = setTimeout(function () {
+    controller.abort()
+  }, timeoutMs)
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    })
+    clearTimeout(id)
+    return response
+  } catch (error: unknown) {
+    clearTimeout(id)
+    throw error
+  }
+}
+
 export async function convertToStickerWebP(
   sourceUri: string,
   identifier: string,
@@ -32,12 +55,70 @@ export async function convertToStickerWebP(
 
   if (sourceUri.startsWith('http://') || sourceUri.startsWith('https://')) {
     const apiQuery = `${SERVER_URL}/api/convert?url=${encodeURIComponent(sourceUri)}`
-    const downloadResult = await RNFS.downloadFile({
+    const downloadJob = RNFS.downloadFile({
       fromUrl: apiQuery,
       toFile: outputPath
-    }).promise
+    })
 
-    if (downloadResult.statusCode !== 200) {
+    let timerId: ReturnType<typeof setTimeout> | null = null
+    const timeoutPromise = new Promise<never>(function (_, reject) {
+      timerId = setTimeout(function () {
+        RNFS.stopDownload(downloadJob.jobId)
+        reject(new Error('Request timeout'))
+      }, 30000)
+    })
+
+    try {
+      const downloadResult = await Promise.race([
+        downloadJob.promise,
+        timeoutPromise
+      ])
+      if (timerId) {
+        clearTimeout(timerId)
+      }
+
+      if (downloadResult.statusCode !== 200) {
+        return {
+          success: false,
+          width: 0,
+          height: 0,
+          size: 0
+        }
+      }
+
+      const stats = await RNFS.stat(outputPath)
+      return {
+        success: true,
+        width: 512,
+        height: 512,
+        size: Number(stats.size)
+      }
+    } catch (e: unknown) {
+      if (timerId) {
+        clearTimeout(timerId)
+      }
+      return {
+        success: false,
+        width: 0,
+        height: 0,
+        size: 0
+      }
+    }
+  }
+
+  const cleanUri = sourceUri.replace('file://', '')
+  const base64Data = await RNFS.readFile(cleanUri, 'base64')
+  
+  try {
+    const response = await fetchWithTimeout(`${SERVER_URL}/api/convert`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fileData: base64Data })
+    }, 30000)
+
+    if (!response.ok) {
       return {
         success: false,
         width: 0,
@@ -46,44 +127,18 @@ export async function convertToStickerWebP(
       }
     }
 
-    const stats = await RNFS.stat(outputPath)
-    return {
-      success: true,
-      width: 512,
-      height: 512,
-      size: Number(stats.size)
+    const result = await response.json()
+    if (result.success && result.base64) {
+      await RNFS.writeFile(outputPath, result.base64, 'base64')
+      return {
+        success: true,
+        width: 512,
+        height: 512,
+        size: result.size || 0
+      }
     }
-  }
-
-  const cleanUri = sourceUri.replace('file://', '')
-  const base64Data = await RNFS.readFile(cleanUri, 'base64')
-  
-  const response = await fetch(`${SERVER_URL}/api/convert`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ fileData: base64Data })
-  })
-
-  if (!response.ok) {
-    return {
-      success: false,
-      width: 0,
-      height: 0,
-      size: 0
-    }
-  }
-
-  const result = await response.json()
-  if (result.success && result.base64) {
-    await RNFS.writeFile(outputPath, result.base64, 'base64')
-    return {
-      success: true,
-      width: 512,
-      height: 512,
-      size: result.size || 0
-    }
+  } catch (e: unknown) {
+    // Timeout or network error
   }
 
   return {
@@ -103,12 +158,70 @@ export async function generateTrayIcon(
 
   if (sourceUri.startsWith('http://') || sourceUri.startsWith('https://')) {
     const apiQuery = `${SERVER_URL}/api/tray?url=${encodeURIComponent(sourceUri)}`
-    const downloadResult = await RNFS.downloadFile({
+    const downloadJob = RNFS.downloadFile({
       fromUrl: apiQuery,
       toFile: outputPath
-    }).promise
+    })
 
-    if (downloadResult.statusCode !== 200) {
+    let timerId: ReturnType<typeof setTimeout> | null = null
+    const timeoutPromise = new Promise<never>(function (_, reject) {
+      timerId = setTimeout(function () {
+        RNFS.stopDownload(downloadJob.jobId)
+        reject(new Error('Request timeout'))
+      }, 30000)
+    })
+
+    try {
+      const downloadResult = await Promise.race([
+        downloadJob.promise,
+        timeoutPromise
+      ])
+      if (timerId) {
+        clearTimeout(timerId)
+      }
+
+      if (downloadResult.statusCode !== 200) {
+        return {
+          success: false,
+          width: 0,
+          height: 0,
+          size: 0
+        }
+      }
+
+      const stats = await RNFS.stat(outputPath)
+      return {
+        success: true,
+        width: 96,
+        height: 96,
+        size: Number(stats.size)
+      }
+    } catch (e: unknown) {
+      if (timerId) {
+        clearTimeout(timerId)
+      }
+      return {
+        success: false,
+        width: 0,
+        height: 0,
+        size: 0
+      }
+    }
+  }
+
+  const cleanUri = sourceUri.replace('file://', '')
+  const base64Data = await RNFS.readFile(cleanUri, 'base64')
+
+  try {
+    const response = await fetchWithTimeout(`${SERVER_URL}/api/tray`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fileData: base64Data })
+    }, 30000)
+
+    if (!response.ok) {
       return {
         success: false,
         width: 0,
@@ -117,45 +230,19 @@ export async function generateTrayIcon(
       }
     }
 
-    const stats = await RNFS.stat(outputPath)
-    return {
-      success: true,
-      width: 96,
-      height: 96,
-      size: Number(stats.size)
+    const result = await response.json()
+    if (result.success && result.base64) {
+      await RNFS.writeFile(outputPath, result.base64, 'base64')
+      const stats = await RNFS.stat(outputPath)
+      return {
+        success: true,
+        width: 96,
+        height: 96,
+        size: Number(stats.size)
+      }
     }
-  }
-
-  const cleanUri = sourceUri.replace('file://', '')
-  const base64Data = await RNFS.readFile(cleanUri, 'base64')
-
-  const response = await fetch(`${SERVER_URL}/api/tray`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ fileData: base64Data })
-  })
-
-  if (!response.ok) {
-    return {
-      success: false,
-      width: 0,
-      height: 0,
-      size: 0
-    }
-  }
-
-  const result = await response.json()
-  if (result.success && result.base64) {
-    await RNFS.writeFile(outputPath, result.base64, 'base64')
-    const stats = await RNFS.stat(outputPath)
-    return {
-      success: true,
-      width: 96,
-      height: 96,
-      size: Number(stats.size)
-    }
+  } catch (e: unknown) {
+    // Timeout or network error
   }
 
   return {
@@ -167,5 +254,3 @@ export async function generateTrayIcon(
 }
 
 export { TRAY_FILE_NAME }
-
-

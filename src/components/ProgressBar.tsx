@@ -32,7 +32,7 @@ export default function ProgressBar({
       <PaperProgressBar progress={pct / 100} color={t.colors.primary} />
       <Text
         style={{
-          fontSize: 12,
+          fontSize: 14,
           color: t.colors.onSurfaceVariant,
           marginTop: 4,
           textAlign: 'right'

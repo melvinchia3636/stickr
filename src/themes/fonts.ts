@@ -1,6 +1,7 @@
+import { MD3LightTheme } from 'react-native-paper'
 import type { MD3Typescale } from 'react-native-paper/lib/typescript/types'
 
-export const dmSansFonts = {
+const fontConfig: Record<keyof MD3Typescale | 'default', { fontFamily: string }> = {
   default: { fontFamily: 'DMSans_400Regular' },
   displayLarge: { fontFamily: 'DMSans_400Regular' },
   displayMedium: { fontFamily: 'DMSans_400Regular' },
@@ -17,4 +18,22 @@ export const dmSansFonts = {
   bodyLarge: { fontFamily: 'DMSans_400Regular' },
   bodyMedium: { fontFamily: 'DMSans_400Regular' },
   bodySmall: { fontFamily: 'DMSans_400Regular' }
-} satisfies Record<keyof MD3Typescale | 'default', { fontFamily: string }>
+}
+
+function getThemeFonts(): MD3Typescale {
+  const baseFonts = MD3LightTheme.fonts
+  const merged = {} as Record<keyof MD3Typescale, unknown>
+  const keys = Object.keys(baseFonts) as (keyof MD3Typescale)[]
+  
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]
+    merged[key] = {
+      ...baseFonts[key],
+      ...fontConfig[key]
+    }
+  }
+  
+  return merged as MD3Typescale
+}
+
+export const dmSansFonts = getThemeFonts()

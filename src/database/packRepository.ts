@@ -27,17 +27,28 @@ export function getPackWithStickers(id: string): PackWithStickers | null {
   return { ...pack, stickers }
 }
 
+export function getPackWithStickersBySigstickId(sigstickId: string): PackWithStickers | null {
+  const db = getDatabase()
+  const result = db.execute('SELECT * FROM sticker_packs WHERE sigstick_id = ?', [sigstickId])
+  const rows = result.rows?._array || []
+  if (rows.length === 0) return null
+  const pack = mapRowToPack(rows[0])
+  const stickers = getStickersForPack(pack.id)
+  return { ...pack, stickers }
+}
+
 export function createPack(
   name: string,
   identifier: string,
-  trayImageFile: string | null
+  trayImageFile: string | null,
+  sigstickId?: string | null
 ): string {
   const db = getDatabase()
   const now = Date.now()
   db.execute(
-    `INSERT INTO sticker_packs (id, name, identifier, tray_image_file, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [identifier, name, identifier, trayImageFile, now, now]
+    `INSERT INTO sticker_packs (id, name, identifier, tray_image_file, created_at, updated_at, sigstick_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [identifier, name, identifier, trayImageFile, now, now, sigstickId || null]
   )
   return identifier
 }
@@ -135,7 +146,8 @@ function mapRowToPack(row: Record<string, unknown>): StickerPack {
     trayImageFile: (row.tray_image_file as string) || null,
     imageDataVersion: (row.image_data_version as string) || '1',
     createdAt: row.created_at as number,
-    updatedAt: row.updated_at as number
+    updatedAt: row.updated_at as number,
+    sigstickId: row.sigstick_id ? String(row.sigstick_id) : null
   }
 }
 
@@ -149,3 +161,16 @@ function mapRowToSticker(row: Record<string, unknown>): Sticker {
     sortOrder: row.sort_order as number
   }
 }
+
+export function getSetting(key: string, defaultValue: string): string {
+  const db = getDatabase()
+  const result = db.execute('SELECT value FROM settings WHERE key = ?', [key])
+  const rows = result.rows?._array || []
+  return rows.length > 0 ? (rows[0] as Record<string, string>).value : defaultValue
+}
+
+export function setSetting(key: string, value: string): void {
+  const db = getDatabase()
+  db.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value])
+}
+

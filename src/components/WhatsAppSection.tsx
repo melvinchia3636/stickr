@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 
-import { Alert, View } from 'react-native'
+import { Alert, AppState, type AppStateStatus, View } from 'react-native'
 
 import { useAlertStore } from '@/components/AlertManager'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
@@ -46,19 +46,48 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
     }
   }
 
-  React.useEffect(() => {
+  React.useEffect(function () {
     checkStatus()
+
+    const subscription = AppState.addEventListener('change', function (nextAppState: AppStateStatus) {
+      if (nextAppState === 'active') {
+        checkStatus()
+      }
+    })
+
+    return function () {
+      subscription.remove()
+    }
   }, [])
 
   const handleAddToWhatsApp = async () => {
     if (needsSplitting(pack.stickers.length)) {
+      const firstUnaddedIndex = whitelistedParts.findIndex(function (x) {
+        return !x
+      })
+      if (firstUnaddedIndex !== -1 && whitelistedParts.some(Boolean)) {
+        setAdding(true)
+        try {
+          const subPacks = await prepareSubPacks(pack)
+          const targetSubPack = subPacks[firstUnaddedIndex]
+          if (targetSubPack) {
+            await addSubPackToWhatsApp(targetSubPack)
+            setTimeout(checkStatus, 1000)
+          }
+        } catch (e: unknown) {
+          Alert.alert('Error', e instanceof Error ? e.message : 'Failed')
+        }
+        setAdding(false)
+        return
+      }
+
       openAlert({
         title: 'Large Sticker Pack',
         message: `This pack has ${pack.stickers.length} stickers. WhatsApp allows max 30 per pack, so it will be split into multiple packs.`,
         icon: 'information',
         actions: [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Continue', onPress: () => doSplitAdd() }
+          { text: 'Continue', onPress: function () { doSplitAdd() } }
         ]
       })
     } else {
@@ -82,6 +111,7 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
         return
       }
       await addPackToWhatsApp(pack)
+      setTimeout(checkStatus, 1000)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       Alert.alert(
@@ -100,6 +130,7 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
       const subPacks = await prepareSubPacks(pack)
       pendingSubPacksRef.current = subPacks.slice(1)
       await addSubPackToWhatsApp(subPacks[0])
+      setTimeout(checkStatus, 1000)
     } catch (e: unknown) {
       Alert.alert('Error', e instanceof Error ? e.message : 'Failed')
       pendingSubPacksRef.current = []

@@ -2,8 +2,9 @@ import { useLayoutEffect } from 'react'
 
 import { useRouter } from 'expo-router'
 
+import { useAlertStore } from '@/components/AlertManager'
 import type { PackWithStickers } from '@/types'
-import { IconButton, Menu } from 'react-native-paper'
+import { IconButton, Menu, useTheme } from 'react-native-paper'
 
 export default function useHeaderMenu({
   navigation,
@@ -16,9 +17,11 @@ export default function useHeaderMenu({
   menuVisible: boolean
   setMenuVisible: (v: boolean) => void
   pack: PackWithStickers | null
-  onDelete?: () => void
+  onDelete: () => void
 }) {
   const router = useRouter()
+  const { openAlert } = useAlertStore()
+  const t = useTheme()
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -50,11 +53,33 @@ export default function useHeaderMenu({
             title="Delete"
             onPress={() => {
               setMenuVisible(false)
-              onDelete?.()
+              openAlert({
+                title: 'Delete Pack',
+                message: `Are you sure you want to delete "${pack?.name}"?`,
+                icon: 'alert',
+                iconColor: t.colors.error,
+                actions: [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: onDelete
+                  }
+                ]
+              })
             }}
           />
         </Menu>
       )
     })
-  }, [navigation, menuVisible, pack, onDelete])
+  }, [
+    navigation,
+    menuVisible,
+    pack,
+    onDelete,
+    openAlert,
+    router,
+    setMenuVisible,
+    t.colors.error
+  ])
 }

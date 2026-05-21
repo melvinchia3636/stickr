@@ -7,6 +7,7 @@ export interface StickerPack {
   imageDataVersion: string
   createdAt: number
   updatedAt: number
+  sigstickId?: string | null
 }
 
 export interface Sticker {
