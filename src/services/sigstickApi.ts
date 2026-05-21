@@ -38,6 +38,17 @@ export async function searchStickerPacks(
   return results
 }
 
+function cleanSigStickUrl(url: string): string {
+  if (!url) return url
+  return url
+    .replace(/\.thumb\d+\.png/g, '.png')
+    .replace(/\.thumb\d+\.webp/g, '.webp')
+    .replace(/\.thumb\d+\.gif/g, '.gif')
+    .replace(/\.thumb\.png/g, '.png')
+    .replace(/\.thumb\.webp/g, '.webp')
+    .replace(/\.thumb\.gif/g, '.gif')
+}
+
 export async function getStickerPackDetail(id: string): Promise<SigStickPack> {
   const url = `https://www.sigstick.com/pack/${id}`
   const response = await fetch(url)
@@ -61,8 +72,8 @@ export async function getStickerPackDetail(id: string): Promise<SigStickPack> {
   return {
     id,
     title: pack.title || 'Unknown Pack',
-    coverUrl,
-    stickers: (pack.stickers || []).map((s: { url: string }) => s.url)
+    coverUrl: coverUrl ? cleanSigStickUrl(coverUrl) : null,
+    stickers: (pack.stickers || []).map((s: { url: string }) => cleanSigStickUrl(s.url))
   }
 }
 

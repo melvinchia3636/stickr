@@ -2,7 +2,9 @@ import React, { useRef, useState } from 'react'
 
 import { Alert, View } from 'react-native'
 
+import { useAlertStore } from '@/components/AlertManager'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
+import type { SubPack } from '@/services/packSplitter'
 import {
   addPackToWhatsApp,
   addSubPackToWhatsApp,
@@ -10,7 +12,6 @@ import {
   needsSplitting,
   prepareSubPacks
 } from '@/services/packSplitter'
-import type { SubPack } from '@/services/packSplitter'
 import {
   isStickerPackWhitelisted,
   refreshContentProvider,
@@ -21,6 +22,7 @@ import { Button, Icon, Text, useTheme } from 'react-native-paper'
 
 export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
   const t = useTheme()
+  const { openAlert } = useAlertStore()
   const [adding, setAdding] = useState(false)
   const [whitelisted, setWhitelisted] = useState(false)
   const [whitelistedParts, setWhitelistedParts] = useState<boolean[]>([])
@@ -50,14 +52,15 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
 
   const handleAddToWhatsApp = async () => {
     if (needsSplitting(pack.stickers.length)) {
-      Alert.alert(
-        'Large Sticker Pack',
-        `This pack has ${pack.stickers.length} stickers...`,
-        [
+      openAlert({
+        title: 'Large Sticker Pack',
+        message: `This pack has ${pack.stickers.length} stickers. WhatsApp allows max 30 per pack, so it will be split into multiple packs.`,
+        icon: 'information',
+        actions: [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Continue', onPress: () => doSplitAdd() }
         ]
-      )
+      })
     } else {
       await doDirectAdd()
     }
@@ -135,7 +138,7 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
             style={{
               backgroundColor: t.colors.elevation.level1,
               paddingVertical: 12,
-              borderRadius: 12,
+              borderRadius: 32,
               flexDirection: 'row',
               justifyContent: 'center',
               alignItems: 'center'

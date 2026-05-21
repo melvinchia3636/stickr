@@ -1,21 +1,24 @@
 import React from 'react'
 
-import { View } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
 
 import { Image } from 'expo-image'
 
 import { getStickerPath } from '@/services/stickerFileManager'
 import type { Sticker } from '@/types'
+import { Icon } from 'react-native-paper'
 import { useTheme } from 'react-native-paper'
 
 export default function StickerFigure({
   sticker,
   identifier,
-  size
+  size,
+  onRemove
 }: {
   sticker: Sticker
   identifier: string
   size: number
+  onRemove?: () => void
 }) {
   const t = useTheme()
 
@@ -46,6 +49,24 @@ export default function StickerFigure({
         style={{ width: size - 10, height: size - 10 }}
         contentFit="contain"
       />
+      {onRemove && (
+        <TouchableOpacity
+          onPress={onRemove}
+          style={{
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Icon source="close" size={12} color="#FFF" />
+        </TouchableOpacity>
+      )}
     </View>
   )
 }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 
-import { Alert, View } from 'react-native'
+import { View } from 'react-native'
 
+import { useAlertStore } from '@/components/AlertManager'
 import { searchStickerPacks } from '@/services/sigstickApi'
 import type { SigStickSearchResult } from '@/types'
 import { TextInput, useTheme } from 'react-native-paper'
@@ -10,6 +11,7 @@ import SigStickSearchResults from './components/SigStickSearchResults'
 
 export default function SigStickSearchScreen() {
   const t = useTheme()
+  const { openAlert } = useAlertStore()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SigStickSearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -24,7 +26,13 @@ export default function SigStickSearchScreen() {
       const packs = await searchStickerPacks(trimmed)
       setResults(packs)
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to search')
+      openAlert({
+        title: 'Error',
+        message: e.message || 'Failed to search',
+        icon: 'alert',
+        iconColor: t.colors.error,
+        actions: [{ text: 'OK' }]
+      })
       setResults([])
     }
     setLoading(false)

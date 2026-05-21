@@ -1,12 +1,7 @@
 import { useLayoutEffect } from 'react'
 
-import { Alert } from 'react-native'
-
 import { useRouter } from 'expo-router'
 
-import { deletePack } from '@/database/packRepository'
-import { deletePackDir } from '@/services/stickerFileManager'
-import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { PackWithStickers } from '@/types'
 import { IconButton, Menu } from 'react-native-paper'
 
@@ -14,12 +9,14 @@ export default function useHeaderMenu({
   navigation,
   menuVisible,
   setMenuVisible,
-  pack
+  pack,
+  onDelete
 }: {
   navigation: any
   menuVisible: boolean
   setMenuVisible: (v: boolean) => void
   pack: PackWithStickers | null
+  onDelete?: () => void
 }) {
   const router = useRouter()
 
@@ -53,28 +50,11 @@ export default function useHeaderMenu({
             title="Delete"
             onPress={() => {
               setMenuVisible(false)
-              if (!pack) return
-              Alert.alert(
-                'Delete Pack',
-                `Are you sure you want to delete "${pack.name}"?`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await deletePackDir(pack.identifier)
-                      await deletePack(pack.id)
-                      await refreshContentProvider()
-                      router.back()
-                    }
-                  }
-                ]
-              )
+              onDelete?.()
             }}
           />
         </Menu>
       )
     })
-  }, [navigation, menuVisible, pack])
+  }, [navigation, menuVisible, pack, onDelete])
 }

@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react'
 
-import {
-  Alert,
-  ScrollView,
-  ToastAndroid,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { ScrollView, ToastAndroid, View } from 'react-native'
 
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
+import { useAlertStore } from '@/components/AlertManager'
 import StickerGrid from '@/components/StickerGrid'
 import {
   deleteSticker,
@@ -20,13 +15,13 @@ import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
 import { deleteStickerFile } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { PackWithStickers } from '@/types'
-import { Icon } from 'react-native-paper'
-import { Button, Surface, Text, TextInput, useTheme } from 'react-native-paper'
+import { Button, Text, TextInput, useTheme } from 'react-native-paper'
 
 export default function EditPackScreen() {
   const { packId } = useLocalSearchParams<{ packId: string }>()
   const t = useTheme()
   const router = useRouter()
+  const { openAlert } = useAlertStore()
   const [pack, setPack] = useState<PackWithStickers | null>(null)
   const [newName, setNewName] = useState('')
   useEffect(() => {
@@ -44,7 +39,13 @@ export default function EditPackScreen() {
   const handleSaveName = async () => {
     const trimmed = newName.trim()
     if (!trimmed) {
-      Alert.alert('Error', 'Pack name cannot be empty')
+      openAlert({
+        title: 'Error',
+        message: 'Pack name cannot be empty',
+        icon: 'alert',
+        iconColor: t.colors.error,
+        actions: [{ text: 'OK' }]
+      })
       return
     }
     await updatePackName(packId, trimmed)
@@ -54,32 +55,23 @@ export default function EditPackScreen() {
     router.back()
   }
 
-  const handleDeleteSticker = (stickerId: string, fileName: string) => {
-    Alert.alert('Delete Sticker', 'Remove this sticker from the pack?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (!pack) return
-          await deleteStickerFile(pack.identifier, fileName)
-          await deleteSticker(stickerId)
-          await regenerateContentsJson(packId)
-          await refreshContentProvider()
-          await loadPack()
-        }
-      }
-    ])
+  const handleDeleteSticker = async (stickerId: string, fileName: string) => {
+    if (!pack) return
+    await deleteStickerFile(pack.identifier, fileName)
+    await deleteSticker(stickerId)
+    await regenerateContentsJson(packId)
+    await refreshContentProvider()
+    await loadPack()
   }
 
   if (!pack) return null
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
       style={{ flex: 1, backgroundColor: t.colors.background }}
     >
-      <View style={{ gap: 8 }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: 24, gap: 8 }}>
         <TextInput
           mode="flat"
           label="Pack Name"
@@ -88,64 +80,44 @@ export default function EditPackScreen() {
           maxLength={50}
           style={{ flex: 1 }}
         />
-        <Button
-          mode="contained"
-          onPress={handleSaveName}
-          icon="check"
-        >
+        <Button mode="contained" onPress={handleSaveName} icon="check">
           Save
         </Button>
       </View>
 
       <Text
         variant="titleMedium"
-        style={{ color: t.colors.onSurface, marginTop: 20, marginBottom: 8 }}
+        style={{
+          color: t.colors.onSurface,
+          marginTop: 20,
+          marginBottom: 8,
+          paddingHorizontal: 16
+        }}
       >
         Stickers ({pack.stickers.length})
       </Text>
 
-      <StickerGrid identifier={pack.identifier} stickers={pack.stickers} />
-
-      <View style={{ marginTop: 8 }}>
-        {pack.stickers.map(s => (
-          <Surface
-            key={s.id}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: t.colors.surface,
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 4,
-              elevation: 1
-            }}
-          >
-            <Text
-              variant="bodyMedium"
-              style={{ color: t.colors.onSurface, flex: 1 }}
-              numberOfLines={1}
-            >
-              {s.imageFileName}
-            </Text>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-              onPress={() => handleDeleteSticker(s.id, s.imageFileName)}
-            >
-              <Icon source="close-circle" size={16} color={t.colors.error} />
-              <Text
-                style={{
-                  color: t.colors.error,
-                  fontSize: 14,
-                  fontWeight: '500'
-                }}
-              >
-                Remove
-              </Text>
-            </TouchableOpacity>
-          </Surface>
-        ))}
-      </View>
+      <StickerGrid
+        identifier={pack.identifier}
+        stickers={pack.stickers}
+        padding={16}
+        onRemoveSticker={s =>
+          openAlert({
+            title: 'Delete Sticker',
+            message: 'Remove this sticker from the pack?',
+            icon: 'alert',
+            iconColor: t.colors.error,
+            actions: [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => handleDeleteSticker(s.id, s.imageFileName)
+              }
+            ]
+          })
+        }
+      />
     </ScrollView>
   )
 }

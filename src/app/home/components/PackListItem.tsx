@@ -2,19 +2,13 @@ import React, { useState } from 'react'
 
 import { useRouter } from 'expo-router'
 
+import { useAlertStore } from '@/components/AlertManager'
 import PackCard from '@/components/PackCard'
 import { deletePack } from '@/database/packRepository'
 import { deletePackDir } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { StickerPack } from '@/types'
-import {
-  Button,
-  Dialog,
-  Menu,
-  Portal,
-  Text,
-  useTheme
-} from 'react-native-paper'
+import { Menu, Portal, useTheme } from 'react-native-paper'
 
 export default function PackListItem({
   pack,
@@ -27,12 +21,11 @@ export default function PackListItem({
 }) {
   const router = useRouter()
   const t = useTheme()
+  const { openAlert } = useAlertStore()
   const [menuVisible, setMenuVisible] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState({ x: 0, y: 0 })
-  const [deleteTarget, setDeleteTarget] = useState(false)
 
   const handleDelete = async () => {
-    setDeleteTarget(false)
     await deletePackDir(pack.identifier)
     await deletePack(pack.id)
     await refreshContentProvider()
@@ -74,32 +67,24 @@ export default function PackListItem({
             leadingIcon="delete"
             onPress={() => {
               setMenuVisible(false)
-              setDeleteTarget(true)
+              openAlert({
+                title: 'Delete Pack',
+                message: `Are you sure you want to delete "${pack.name}"? This cannot be undone.`,
+                icon: 'alert',
+                iconColor: t.colors.error,
+                actions: [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: handleDelete
+                  }
+                ]
+              })
             }}
             title="Delete"
           />
         </Menu>
-      </Portal>
-
-      <Portal>
-        <Dialog visible={deleteTarget} onDismiss={() => setDeleteTarget(false)}>
-          <Dialog.Icon icon="alert" />
-          <Dialog.Title style={{ textAlign: 'center' }}>
-            Delete Pack
-          </Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={{ textAlign: 'center' }}>
-              Are you sure you want to delete "{pack.name}"? This cannot be
-              undone.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions style={{ justifyContent: 'center' }}>
-            <Button onPress={() => setDeleteTarget(false)}>Cancel</Button>
-            <Button textColor={t.colors.error} onPress={handleDelete}>
-              Delete
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
       </Portal>
     </>
   )

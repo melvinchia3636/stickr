@@ -79,8 +79,11 @@ class ImageConverterModule(reactContext: ReactApplicationContext) : ReactContext
         }
 
         if (isWebP) {
-            Log.d(TAG, "  animated WebP, copying as-is")
-            FileOutputStream(outputFile).use { it.write(rawBytes) }
+            val success = WebPToWebPConverter.convert(rawBytes, outputPath, maxDimension)
+            if (!success) {
+                Log.w(TAG, "  WebP conversion failed, falling back to copying as-is")
+                FileOutputStream(outputFile).use { it.write(rawBytes) }
+            }
             resolveAnimatedResult(outputPath, maxDimension, promise)
             return
         }

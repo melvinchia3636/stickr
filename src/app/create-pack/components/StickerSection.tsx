@@ -1,7 +1,8 @@
 import React from 'react'
 
-import { Alert, Image, TouchableOpacity, View } from 'react-native'
+import { Image, TouchableOpacity, View } from 'react-native'
 
+import { useAlertStore } from '@/components/AlertManager'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { Icon, Text, useTheme } from 'react-native-paper'
 
@@ -15,6 +16,7 @@ export default function StickerSection({
   onChooseLabel: string
 }) {
   const t = useTheme()
+  const { openAlert } = useAlertStore()
 
   const pickImages = () =>
     launchImageLibrary(
@@ -22,7 +24,13 @@ export default function StickerSection({
       response => {
         if (response.didCancel) return
         if (response.errorCode) {
-          Alert.alert('Error', response.errorMessage || 'Failed')
+          openAlert({
+            title: 'Error',
+            message: response.errorMessage || 'Failed to pick images',
+            icon: 'alert',
+            iconColor: t.colors.error,
+            actions: [{ text: 'OK' }]
+          })
           return
         }
         const uris = (response.assets || [])

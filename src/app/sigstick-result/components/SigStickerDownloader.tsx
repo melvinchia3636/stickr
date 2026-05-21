@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 
-import { Alert, View } from 'react-native'
+import { View } from 'react-native'
 
 import { useRouter } from 'expo-router'
 
+import { useAlertStore } from '@/components/AlertManager'
 import ProgressBar from '@/components/ProgressBar'
 import { addSticker, createPack } from '@/database/packRepository'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
@@ -31,6 +32,7 @@ export default function SigStickerDownloader({
 }) {
   const t = useTheme()
   const router = useRouter()
+  const { openAlert } = useAlertStore()
   const [downloading, setDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState(0)
 
@@ -71,19 +73,31 @@ export default function SigStickerDownloader({
       await refreshContentProvider()
 
       setDownloading(false)
-      Alert.alert('Success', `"${packTitle}" has been added to your packs!`, [
-        {
-          text: 'View Pack',
-          onPress: () =>
-            router.replace({
-              pathname: '/pack-detail',
-              params: { packId: identifier }
-            })
-        }
-      ])
+      openAlert({
+        title: 'Success',
+        message: `"${packTitle}" has been added to your packs!`,
+        icon: 'check-circle',
+        iconColor: t.colors.primary,
+        actions: [
+          {
+            text: 'View Pack',
+            onPress: () =>
+              router.replace({
+                pathname: '/pack-detail',
+                params: { packId: identifier }
+              })
+          }
+        ]
+      })
     } catch (e: any) {
       setDownloading(false)
-      Alert.alert('Error', e.message || 'Failed to download pack')
+      openAlert({
+        title: 'Error',
+        message: e.message || 'Failed to download pack',
+        icon: 'alert',
+        iconColor: t.colors.error,
+        actions: [{ text: 'OK' }]
+      })
     }
   }
 

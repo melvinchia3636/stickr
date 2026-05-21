@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 
-import { Alert } from 'react-native'
+import { View } from 'react-native'
 
 import { useRouter } from 'expo-router'
 
+import { useAlertStore } from '@/components/AlertManager'
 import ProgressBar from '@/components/ProgressBar'
 import { addSticker, createPack } from '@/database/packRepository'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
@@ -34,16 +35,29 @@ export default function CreatePackButton({
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const { openAlert } = useAlertStore()
   const [total, setTotal] = useState(0)
 
   const handleCreate = async () => {
     const name = packName.trim()
     if (!name) {
-      Alert.alert('Error', 'Please enter a pack name')
+      openAlert({
+        title: 'Error',
+        message: 'Please enter a pack name',
+        icon: 'alert',
+        iconColor: t.colors.error,
+        actions: [{ text: 'OK' }]
+      })
       return
     }
     if (selectedImages.length < 3) {
-      Alert.alert('Error', 'Please select at least 3 stickers')
+      openAlert({
+        title: 'Error',
+        message: 'Please select at least 3 stickers',
+        icon: 'alert',
+        iconColor: t.colors.error,
+        actions: [{ text: 'OK' }]
+      })
       return
     }
 
@@ -75,19 +89,31 @@ export default function CreatePackButton({
       await regenerateContentsJson(identifier)
       await refreshContentProvider()
       setLoading(false)
-      Alert.alert('Success', `Sticker pack "${name}" created!`, [
-        {
-          text: 'View Pack',
-          onPress: () =>
-            router.replace({
-              pathname: '/pack-detail',
-              params: { packId: identifier }
-            })
-        }
-      ])
+      openAlert({
+        title: 'Success',
+        message: `Sticker pack "${name}" created!`,
+        icon: 'check-circle',
+        iconColor: t.colors.primary,
+        actions: [
+          {
+            text: 'View Pack',
+            onPress: () =>
+              router.replace({
+                pathname: '/pack-detail',
+                params: { packId: identifier }
+              })
+          }
+        ]
+      })
     } catch (e: any) {
       setLoading(false)
-      Alert.alert('Error', e.message || 'Failed')
+      openAlert({
+        title: 'Error',
+        message: e.message || 'Failed',
+        icon: 'alert',
+        iconColor: t.colors.error,
+        actions: [{ text: 'OK' }]
+      })
     }
   }
 

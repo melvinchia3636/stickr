@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 
-import { Alert, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 
 import { useLocalSearchParams } from 'expo-router'
 
+import { useAlertStore } from '@/components/AlertManager'
 import LoadingScreen from '@/components/LoadingScreen'
 import StickerGrid from '@/components/StickerGrid'
 import StickerPackHeader from '@/components/StickerPackHeader'
@@ -15,6 +16,7 @@ import SigStickerDownloader from './components/SigStickerDownloader'
 export default function SigStickResultScreen() {
   const { packId } = useLocalSearchParams<{ packId: string }>()
   const t = useTheme()
+  const { openAlert } = useAlertStore()
 
   const [stickerUrls, setStickerUrls] = useState<string[]>([])
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
@@ -29,7 +31,31 @@ export default function SigStickResultScreen() {
         setPackTitle(detail.title)
         setCoverUrl(detail.coverUrl)
       } catch (e: any) {
-        Alert.alert('Error', e.message || 'Failed to load pack')
+        openAlert({
+          title: 'Error',
+          message: e.message || 'Failed to load pack',
+          icon: 'alert',
+          actions: [{ text: 'OK' }]
+        })
+      }
+      setLoading(false)
+    })()
+  }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const detail = await getStickerPackDetail(packId)
+        setStickerUrls(detail.stickers)
+        setPackTitle(detail.title)
+        setCoverUrl(detail.coverUrl)
+      } catch (e: any) {
+        openAlert({
+          title: 'Error',
+          message: e.message || 'Failed to load pack',
+          icon: 'alert',
+          actions: [{ text: 'OK' }]
+        })
       }
       setLoading(false)
     })()
@@ -57,6 +83,7 @@ export default function SigStickResultScreen() {
             sortOrder: i
           }))}
           identifier={packId}
+          padding={16}
         />
       </ScrollView>
       <SigStickerDownloader

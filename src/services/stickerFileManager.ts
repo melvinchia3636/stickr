@@ -47,26 +47,67 @@ export async function copyImageToPack(
   return destPath
 }
 
+function decodeBase64(base64: string): Uint8Array {
+  const cleaned = base64.replace(/[^A-Za-z0-9+/]/g, '')
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  const lookup = new Uint8Array(256)
+  for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i
+  }
+  let bufferLength = cleaned.length * 0.75
+  if (cleaned[cleaned.length - 1] === '=') {
+    bufferLength--
+    if (cleaned[cleaned.length - 2] === '=') {
+      bufferLength--
+    }
+  }
+  const bytes = new Uint8Array(bufferLength)
+  let p = 0
+  for (let i = 0; i < cleaned.length; i += 4) {
+    const base64x = lookup[cleaned.charCodeAt(i)]
+    const base64y = lookup[cleaned.charCodeAt(i + 1)]
+    const base64z = lookup[cleaned.charCodeAt(i + 2)]
+    const base64w = lookup[cleaned.charCodeAt(i + 3)]
+    bytes[p++] = (base64x << 2) | (base64y >> 4)
+    if (p < bufferLength) bytes[p++] = ((base64y & 15) << 4) | (base64z >> 2)
+    if (p < bufferLength) bytes[p++] = ((base64z & 3) << 6) | (base64w & 63)
+  }
+  return bytes
+}
+
 export async function isAnimatedWebP(filePath: string): Promise<boolean> {
   try {
     const base64 = await RNFS.read(filePath, 256, 0, 'base64')
-    const binary = atob(base64)
-    if (binary.length < 21) return false
-    if (binary.substring(0, 4) !== 'RIFF' || binary.substring(8, 12) !== 'WEBP')
+    const bytes = decodeBase64(base64)
+    if (bytes.length < 21) return false
+    if (
+      bytes[0] !== 0x52 || // R
+      bytes[1] !== 0x49 || // I
+      bytes[2] !== 0x46 || // F
+      bytes[3] !== 0x46 || // F
+      bytes[8] !== 0x57 || // W
+      bytes[9] !== 0x45 || // E
+      bytes[10] !== 0x42 || // B
+      bytes[11] !== 0x50    // P
+    ) {
       return false
-
+    }
     let offset = 12
-    while (offset + 8 < binary.length) {
-      const chunkId = binary.substring(offset, offset + 4)
+    while (offset + 8 < bytes.length) {
+      const chunkId = String.fromCharCode(
+        bytes[offset],
+        bytes[offset + 1],
+        bytes[offset + 2],
+        bytes[offset + 3]
+      )
       const chunkSize =
-        binary.charCodeAt(offset + 4) |
-        (binary.charCodeAt(offset + 5) << 8) |
-        (binary.charCodeAt(offset + 6) << 16) |
-        (binary.charCodeAt(offset + 7) << 24)
-
+        bytes[offset + 4] |
+        (bytes[offset + 5] << 8) |
+        (bytes[offset + 6] << 16) |
+        (bytes[offset + 7] << 24)
       if (chunkId === 'ANIM' || chunkId === 'ANMF') return true
-      if (chunkId === 'VP8X' && chunkSize >= 4 && offset + 8 < binary.length) {
-        const flags = binary.charCodeAt(offset + 8)
+      if (chunkId === 'VP8X' && chunkSize >= 4 && offset + 8 < bytes.length) {
+        const flags = bytes[offset + 8]
         if (flags & 0x02) return true
       }
       offset += 8 + chunkSize + (chunkSize % 2)
