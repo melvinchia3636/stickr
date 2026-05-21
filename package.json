@@ -34,6 +34,7 @@
     "react-native": "0.83.6",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.30.0",
+    "react-native-get-random-values": "^2.0.0",
     "react-native-image-picker": "^8.2.1",
     "react-native-nitro-sqlite": "^9.6.0",
     "react-native-paper": "^5.15.2",

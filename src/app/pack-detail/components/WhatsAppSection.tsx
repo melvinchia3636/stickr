@@ -13,7 +13,8 @@ import {
 import type { SubPack } from '@/services/packSplitter'
 import {
   isStickerPackWhitelisted,
-  refreshContentProvider
+  refreshContentProvider,
+  validateStickerPack
 } from '@/services/whatsappBridge'
 import type { PackWithStickers } from '@/types'
 import { Button, Icon, Text, useTheme } from 'react-native-paper'
@@ -67,6 +68,16 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
     try {
       await regenerateContentsJson(pack.id)
       await refreshContentProvider()
+      const validation = await validateStickerPack(pack.identifier)
+      if (!validation.valid) {
+        Alert.alert(
+          'Sticker Pack Validation Failed',
+          validation.errors.join('\n'),
+          [{ text: 'OK' }]
+        )
+        setAdding(false)
+        return
+      }
       await addPackToWhatsApp(pack)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''

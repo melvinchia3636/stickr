@@ -84,24 +84,62 @@ class StickerContentProvider : ContentProvider() {
     }
 
     override fun query(uri: Uri, projection: Array<String>?, selection: String?, selectionArgs: Array<String>?, sortOrder: String?): Cursor? {
-        Log.d(TAG, "query() uri=$uri")
+        Log.d(TAG, "=== CONTENT PROVIDER QUERY START ===")
+        Log.d(TAG, "  URI: $uri")
+        Log.d(TAG, "  Projection: ${projection?.joinToString()}")
         val code = uriMatcher.match(uri)
-        Log.d(TAG, "  matcher code=$code")
+        Log.d(TAG, "  Matcher code: $code")
 
-        return when (code) {
-            METADATA -> getMetadataCursor(readAllPacks())
+        val cursor = when (code) {
+            METADATA -> {
+                val packs = readAllPacks()
+                Log.d(TAG, "  METADATA: returning ${packs.size} packs: ${packs.map { it.identifier }}")
+                getMetadataCursor(packs)
+            }
             METADATA_SINGLE -> {
-                val identifier = uri.lastPathSegment ?: return null
-                val pack = readAllPacks().find { it.identifier == identifier } ?: return null
-                getMetadataCursor(listOf(pack))
+                val identifier = uri.lastPathSegment
+                Log.d(TAG, "  METADATA_SINGLE: identifier=$identifier")
+                if (identifier == null) {
+                    Log.e(TAG, "    FAIL: identifier is null")
+                    null
+                } else {
+                    val packs = readAllPacks()
+                    val pack = packs.find { it.identifier == identifier }
+                    if (pack == null) {
+                        Log.e(TAG, "    FAIL: pack with identifier '$identifier' not found in: ${packs.map { it.identifier }}")
+                        null
+                    } else {
+                        Log.d(TAG, "    SUCCESS: found pack '$identifier'")
+                        getMetadataCursor(listOf(pack))
+                    }
+                }
             }
             STICKERS -> {
-                val identifier = uri.lastPathSegment ?: return null
-                val pack = readAllPacks().find { it.identifier == identifier } ?: return null
-                getStickersCursor(pack)
+                val identifier = uri.lastPathSegment
+                Log.d(TAG, "  STICKERS: identifier=$identifier")
+                if (identifier == null) {
+                    Log.e(TAG, "    FAIL: identifier is null")
+                    null
+                } else {
+                    val packs = readAllPacks()
+                    val pack = packs.find { it.identifier == identifier }
+                    if (pack == null) {
+                        Log.e(TAG, "    FAIL: pack with identifier '$identifier' not found")
+                        null
+                    } else {
+                        Log.d(TAG, "    SUCCESS: found pack '$identifier' with ${pack.stickers.size} stickers")
+                        getStickersCursor(pack)
+                    }
+                }
             }
-            else -> null
+            else -> {
+                Log.w(TAG, "  Unknown URI code: $code")
+                null
+            }
         }
+        Log.d(TAG, "  Returning cursor: count=${cursor?.count ?: "null"}")
+        Log.d(TAG, "=== CONTENT PROVIDER QUERY END ===")
+        return cursor
     }
 
     private fun getMetadataCursor(packs: List<StickerPack>): MatrixCursor {
@@ -113,7 +151,7 @@ class StickerContentProvider : ContentProvider() {
             "image_data_version", "whatsapp_will_not_cache_stickers", "animated_sticker_pack"
         ))
         for (pack in packs) {
-            cursor.addRow(arrayOf(
+            cursor.addRow(arrayOf<Any>(
                 pack.identifier, pack.name, pack.publisher,
                 pack.trayImageFile, "", "",
                 pack.publisherEmail, pack.publisherWebsite,
@@ -137,20 +175,41 @@ class StickerContentProvider : ContentProvider() {
     }
 
     override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor? {
-        Log.d(TAG, "openFile() uri=$uri")
+        Log.d(TAG, "=== CONTENT PROVIDER openFile START ===")
+        Log.d(TAG, "  URI: $uri, mode: $mode")
         val code = uriMatcher.match(uri)
-        if (code != STICKERS_ASSET) return null
+        Log.d(TAG, "  Matcher code: $code")
+        if (code != STICKERS_ASSET) {
+            Log.e(TAG, "  FAIL: URI matcher code $code is not STICKERS_ASSET")
+            return null
+        }
 
         val segments = uri.pathSegments
-        if (segments.size < 3) return null
+        if (segments.size < 3) {
+            Log.e(TAG, "  FAIL: URI has fewer than 3 path segments: $segments")
+            return null
+        }
         val identifier = segments[1]
         val fileName = segments[2]
 
         val file = File(getStickersDir(), "$identifier/$fileName")
-        Log.d(TAG, "  file=${file.absolutePath} exists=${file.exists()}")
-        if (!file.exists()) return null
+        Log.d(TAG, "  File requested: ${file.absolutePath}")
+        Log.d(TAG, "  File exists: ${file.exists()}, size: ${file.length()} bytes")
 
-        return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        if (!file.exists()) {
+            Log.e(TAG, "  FAIL: File does not exist")
+            return null
+        }
+
+        val pfd = try {
+            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        } catch (e: Exception) {
+            Log.e(TAG, "  FAIL: Error opening ParcelFileDescriptor", e)
+            null
+        }
+        Log.d(TAG, "  Returning ParcelFileDescriptor: $pfd")
+        Log.d(TAG, "=== CONTENT PROVIDER openFile END ===")
+        return pfd
     }
 
     override fun openAssetFile(uri: Uri, mode: String): AssetFileDescriptor? {
@@ -161,15 +220,20 @@ class StickerContentProvider : ContentProvider() {
 
     override fun getType(uri: Uri): String? {
         val code = uriMatcher.match(uri)
-        if (code == STICKERS_ASSET) {
-            val fileName = uri.lastPathSegment ?: return null
-            return when {
-                fileName.endsWith(".webp") -> "image/webp"
-                fileName.endsWith(".png") -> "image/png"
-                else -> "application/octet-stream"
+        return when (code) {
+            METADATA -> "vnd.android.cursor.dir/vnd.${authority}.metadata"
+            METADATA_SINGLE -> "vnd.android.cursor.item/vnd.${authority}.metadata"
+            STICKERS -> "vnd.android.cursor.dir/vnd.${authority}.stickers"
+            STICKERS_ASSET -> {
+                val fileName = uri.lastPathSegment ?: return null
+                when {
+                    fileName.endsWith(".webp") -> "image/webp"
+                    fileName.endsWith(".png") -> "image/png"
+                    else -> "application/octet-stream"
+                }
             }
+            else -> null
         }
-        return "vnd.android.cursor.dir/vnd.${authority}.stickers"
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null

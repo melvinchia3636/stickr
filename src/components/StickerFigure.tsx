@@ -8,7 +8,7 @@ import { getStickerPath } from '@/services/stickerFileManager'
 import type { Sticker } from '@/types'
 import { useTheme } from 'react-native-paper'
 
-export default function PackStickerItem({
+export default function StickerFigure({
   sticker,
   identifier,
   size
@@ -24,6 +24,7 @@ export default function PackStickerItem({
       style={{
         width: size,
         height: size,
+        marginBottom: 8,
         backgroundColor: t.colors.surface,
         borderRadius: 8,
         overflow: 'hidden',
@@ -38,7 +39,9 @@ export default function PackStickerItem({
     >
       <Image
         source={{
-          uri: `file://${getStickerPath(identifier, sticker.imageFileName)}`
+          uri: sticker.imageFileName.startsWith('http')
+            ? sticker.imageFileName
+            : `file://${getStickerPath(identifier, sticker.imageFileName)}`
         }}
         style={{ width: size - 10, height: size - 10 }}
         contentFit="contain"

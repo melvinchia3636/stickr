@@ -1,30 +1,34 @@
 import React, { useEffect, useState } from 'react'
 
-import { Alert, ScrollView, TouchableOpacity, View } from 'react-native'
+import {
+  Alert,
+  ScrollView,
+  ToastAndroid,
+  TouchableOpacity,
+  View
+} from 'react-native'
 
 import { useLocalSearchParams, useRouter } from 'expo-router'
 
 import StickerGrid from '@/components/StickerGrid'
 import {
-  deletePack,
   deleteSticker,
   getPackWithStickers,
   updatePackName
 } from '@/database/packRepository'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
-import { deletePackDir, deleteStickerFile } from '@/services/stickerFileManager'
+import { deleteStickerFile } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { PackWithStickers } from '@/types'
 import { Icon } from 'react-native-paper'
 import { Button, Surface, Text, TextInput, useTheme } from 'react-native-paper'
 
 export default function EditPackScreen() {
-  const router = useRouter()
   const { packId } = useLocalSearchParams<{ packId: string }>()
   const t = useTheme()
+  const router = useRouter()
   const [pack, setPack] = useState<PackWithStickers | null>(null)
   const [newName, setNewName] = useState('')
-
   useEffect(() => {
     loadPack()
   }, [])
@@ -46,7 +50,8 @@ export default function EditPackScreen() {
     await updatePackName(packId, trimmed)
     await regenerateContentsJson(packId)
     await refreshContentProvider()
-    Alert.alert('Saved', 'Pack name updated')
+    ToastAndroid.show('Pack name updated', ToastAndroid.SHORT)
+    router.back()
   }
 
   const handleDeleteSticker = (stickerId: string, fileName: string) => {
@@ -62,23 +67,6 @@ export default function EditPackScreen() {
           await regenerateContentsJson(packId)
           await refreshContentProvider()
           await loadPack()
-        }
-      }
-    ])
-  }
-
-  const handleDeletePack = () => {
-    Alert.alert('Delete Pack', 'This will permanently delete this pack.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          if (!pack) return
-          await deletePackDir(pack.identifier)
-          await deletePack(packId)
-          await refreshContentProvider()
-          router.back()
         }
       }
     ])
@@ -160,18 +148,6 @@ export default function EditPackScreen() {
           </Surface>
         ))}
       </View>
-
-      <Button
-        mode="outlined"
-        textColor={t.colors.error}
-        style={{ marginTop: 24, borderColor: t.colors.error }}
-        onPress={handleDeletePack}
-        icon={() => (
-          <Icon source="delete-outline" size={20} color={t.colors.error} />
-        )}
-      >
-        Delete Pack
-      </Button>
     </ScrollView>
   )
 }

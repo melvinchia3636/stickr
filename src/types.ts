@@ -35,9 +35,16 @@ export interface ConvertResult {
   size: number
 }
 
+export interface ValidationResult {
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
 export interface StickerModuleNative {
   addStickerPackToWhatsApp(identifier: string, packName: string): Promise<void>
   isStickerPackWhitelisted(identifier: string): Promise<boolean>
+  validateStickerPack(identifier: string): Promise<ValidationResult>
   refreshContentProvider(): Promise<void>
 }
 

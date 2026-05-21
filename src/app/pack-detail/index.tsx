@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react'
 
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native'
+import { ScrollView } from 'react-native'
 
 import { useLocalSearchParams, useNavigation } from 'expo-router'
 
+import LoadingScreen from '@/components/LoadingScreen'
+import StickerGrid from '@/components/StickerGrid'
+import StickerPackHeader from '@/components/StickerPackHeader'
 import { getPackWithStickers } from '@/database/packRepository'
+import { getStickerPath } from '@/services/stickerFileManager'
 import type { PackWithStickers } from '@/types'
 import { useTheme } from 'react-native-paper'
 
-import PackHeader from './components/PackHeader'
-import StickerList from './components/StickerList'
 import WhatsAppSection from './components/WhatsAppSection'
 import useHeaderMenu from './hooks/useHeaderMenu'
 
@@ -31,14 +33,7 @@ export default function PackDetailScreen() {
   useHeaderMenu({ navigation, menuVisible, setMenuVisible, pack })
 
   if (!pack) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={t.colors.primary} />
-        <Text style={{ color: t.colors.onSurfaceVariant, marginTop: 12 }}>
-          Loading pack...
-        </Text>
-      </View>
-    )
+    return <LoadingScreen message="Loading pack..." />
   }
 
   return (
@@ -46,9 +41,13 @@ export default function PackDetailScreen() {
       style={{ flex: 1, backgroundColor: t.colors.background }}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      <PackHeader pack={pack} />
+      <StickerPackHeader
+        name={pack.name}
+        stickerCount={pack.stickers.length}
+        imageUri={`file://${getStickerPath(pack.identifier, pack.stickers[0].imageFileName)}`}
+      />
       <WhatsAppSection pack={pack} />
-      <StickerList stickers={pack.stickers} identifier={pack.identifier} />
+      <StickerGrid stickers={pack.stickers} identifier={pack.identifier} />
     </ScrollView>
   )
 }

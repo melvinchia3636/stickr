@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
-import android.graphics.drawable.AnimatedImageDrawable
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -22,32 +21,6 @@ class ImageConverterModule(reactContext: ReactApplicationContext) : ReactContext
 
     override fun getName(): String = "ImageConverterModule"
 
-    private fun isAnimatedWebP(bytes: ByteArray): Boolean {
-        if (bytes.size < 12) return false
-        val riff = String(bytes, 0, 4, Charsets.US_ASCII)
-        val webp = String(bytes, 8, 4, Charsets.US_ASCII)
-        if (riff != "RIFF" || webp != "WEBP") return false
-
-        var offset = 12
-        while (offset + 8 < bytes.size) {
-            val chunkId = String(bytes, offset, 4, Charsets.US_ASCII)
-            if (chunkId == "ANIM") return true
-            if (chunkId == "ANMF") return true
-            val chunkSize = (bytes[offset + 4].toInt() and 0xFF) or
-                    ((bytes[offset + 5].toInt() and 0xFF) shl 8) or
-                    ((bytes[offset + 6].toInt() and 0xFF) shl 16) or
-                    ((bytes[offset + 7].toInt() and 0xFF) shl 24)
-            offset += 8 + chunkSize + (chunkSize % 2)
-        }
-        return false
-    }
-
-    private fun isAnimatedGif(bytes: ByteArray): Boolean {
-        if (bytes.size < 6) return false
-        val header = String(bytes, 0, 6, Charsets.US_ASCII)
-        return header == "GIF89a" || header == "GIF87a"
-    }
-
     @ReactMethod
     fun convertToWebP(sourceUri: String, outputPath: String, maxDimension: Int, promise: Promise) {
         try {
@@ -60,7 +33,9 @@ class ImageConverterModule(reactContext: ReactApplicationContext) : ReactContext
                 return
             }
 
-            val animated = isAnimatedWebP(rawBytes) || isAnimatedGif(rawBytes)
+            val animated = WebPUtils.isAnimatedWebP(rawBytes) ||
+                    WebPUtils.isAnimatedGif(rawBytes) ||
+                    WebPUtils.isAnimatedPng(rawBytes)
             Log.d(TAG, "convertToWebP animated=$animated size=${rawBytes.size} uri=$sourceUri")
 
             if (animated) {
@@ -77,60 +52,50 @@ class ImageConverterModule(reactContext: ReactApplicationContext) : ReactContext
         val outputFile = File(outputPath)
         outputFile.parentFile?.mkdirs()
 
-        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, opts)
-        val srcW = opts.outWidth
-        val srcH = opts.outHeight
-        Log.d(TAG, "  animated source dimensions: ${srcW}x${srcH}")
+        val isGif = WebPUtils.isAnimatedGif(rawBytes)
+        val isApng = WebPUtils.isAnimatedPng(rawBytes)
+        val isWebP = WebPUtils.isAnimatedWebP(rawBytes)
+        Log.d(TAG, "  convertAnimated: isGif=$isGif isApng=$isApng isWebP=$isWebP size=${rawBytes.size}")
 
-        val maxAnimatedSize = 500 * 1024
-
-        if (srcW <= maxDimension && srcH <= maxDimension && rawBytes.size <= maxAnimatedSize) {
-            Log.d(TAG, "  animated sticker already meets requirements, copying as-is")
-            FileOutputStream(outputFile).use { it.write(rawBytes) }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            Log.d(TAG, "  animated sticker needs processing, attempting ImageDecoder approach")
-            try {
-                val tempFile = File(outputFile.parent, "temp_anim_${System.currentTimeMillis()}")
-                FileOutputStream(tempFile).use { it.write(rawBytes) }
-
-                val source = ImageDecoder.createSource(tempFile)
-                val drawable = ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
-                    val size = info.size
-                    if (size.width > maxDimension || size.height > maxDimension) {
-                        val ratio = maxDimension.toFloat() / maxOf(size.width, size.height)
-                        decoder.setTargetSize(
-                            (size.width * ratio).toInt(),
-                            (size.height * ratio).toInt()
-                        )
-                    }
-                }
-
-                if (drawable is AnimatedImageDrawable) {
-                    Log.d(TAG, "  decoded as AnimatedImageDrawable, copying original (resize not supported for animated re-encode)")
-                    FileOutputStream(outputFile).use { it.write(rawBytes) }
-                } else {
-                    Log.d(TAG, "  decoded as static drawable, converting normally")
-                    tempFile.delete()
-                    convertStatic(rawBytes, outputPath, maxDimension, promise)
-                    return
-                }
-                tempFile.delete()
-            } catch (e: Exception) {
-                Log.w(TAG, "  ImageDecoder failed, copying raw bytes: ${e.message}")
-                FileOutputStream(outputFile).use { it.write(rawBytes) }
+        if (isGif) {
+            val success = GifToWebPConverter.convert(rawBytes, outputPath, maxDimension)
+            if (!success) {
+                promise.reject("CONVERT_ERROR", "Failed to convert GIF to animated WebP")
+                return
             }
-        } else {
-            Log.d(TAG, "  pre-API28, copying animated file as-is")
-            FileOutputStream(outputFile).use { it.write(rawBytes) }
+            resolveAnimatedResult(outputPath, maxDimension, promise)
+            return
         }
 
+        if (isApng) {
+            val success = ApngToWebPConverter.convert(rawBytes, outputPath, maxDimension)
+            if (!success) {
+                Log.w(TAG, "  APNG conversion failed, falling back to static")
+                convertStatic(rawBytes, outputPath, maxDimension, promise)
+                return
+            }
+            resolveAnimatedResult(outputPath, maxDimension, promise)
+            return
+        }
+
+        if (isWebP) {
+            Log.d(TAG, "  animated WebP, copying as-is")
+            FileOutputStream(outputFile).use { it.write(rawBytes) }
+            resolveAnimatedResult(outputPath, maxDimension, promise)
+            return
+        }
+
+        Log.d(TAG, "  unknown animated format, falling back to static conversion")
+        convertStatic(rawBytes, outputPath, maxDimension, promise)
+    }
+
+    private fun resolveAnimatedResult(outputPath: String, maxDimension: Int, promise: Promise) {
         val result = Arguments.createMap().apply {
             putBoolean("success", true)
             putBoolean("animated", true)
-            putInt("width", srcW)
-            putInt("height", srcH)
-            putDouble("size", outputFile.length().toDouble())
+            putInt("width", maxDimension)
+            putInt("height", maxDimension)
+            putDouble("size", File(outputPath).length().toDouble())
         }
         promise.resolve(result)
     }
@@ -202,9 +167,30 @@ class ImageConverterModule(reactContext: ReactApplicationContext) : ReactContext
                 return
             }
 
-            val bitmap = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
+            val animated = WebPUtils.isAnimatedWebP(rawBytes) || WebPUtils.isAnimatedGif(rawBytes)
+            Log.d(TAG, "generateTrayIcon animated=$animated size=${rawBytes.size} uri=$sourceUri")
+
+            val bitmap: Bitmap? = if (animated && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                try {
+                    val tempFile = File.createTempFile("tray_src", ".webp", reactApplicationContext.cacheDir)
+                    FileOutputStream(tempFile).use { it.write(rawBytes) }
+                    val source = ImageDecoder.createSource(tempFile)
+                    val bmp = ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                        decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
+                    }
+                    tempFile.delete()
+                    Log.d(TAG, "  decoded animated first frame via ImageDecoder: ${bmp.width}x${bmp.height}")
+                    bmp
+                } catch (e: Exception) {
+                    Log.w(TAG, "  ImageDecoder failed, falling back to BitmapFactory: ${e.message}")
+                    BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
+                }
+            } else {
+                BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
+            }
+
             if (bitmap == null) {
-                promise.reject("CONVERT_ERROR", "Failed to decode image")
+                promise.reject("CONVERT_ERROR", "Failed to decode image for tray icon")
                 return
             }
 
@@ -245,6 +231,8 @@ class ImageConverterModule(reactContext: ReactApplicationContext) : ReactContext
                 }
             }
             tray.recycle()
+
+            Log.d(TAG, "  tray icon written: ${outputFile.length()} bytes")
 
             val result = Arguments.createMap().apply {
                 putBoolean("success", true)

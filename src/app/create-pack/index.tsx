@@ -8,12 +8,19 @@ import LoadingOverlay from '@/components/LoadingOverlay'
 import ProgressBar from '@/components/ProgressBar'
 import { addSticker, createPack } from '@/database/packRepository'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
-import { convertToStickerWebP } from '@/services/imageProcessor'
+import {
+  TRAY_FILE_NAME,
+  convertToStickerWebP,
+  generateTrayIcon
+} from '@/services/imageProcessor'
 import { ensureStickersDir } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
+import RNFS from 'react-native-fs'
+import 'react-native-get-random-values'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { Icon } from 'react-native-paper'
 import { Text, TextInput, useTheme } from 'react-native-paper'
+import { v4 as uuid } from 'uuid'
 
 export default function CreatePackScreen() {
   const router = useRouter()
@@ -66,7 +73,7 @@ export default function CreatePackScreen() {
     try {
       await ensureStickersDir()
       const identifier = generateUUID()
-      await createPack(name, identifier, null)
+      await createPack(name, identifier, TRAY_FILE_NAME)
 
       for (let i = 0; i < selectedImages.length; i++) {
         const fileName = `sticker_${String(i + 1).padStart(3, '0')}.webp`
@@ -79,6 +86,9 @@ export default function CreatePackScreen() {
         await addSticker(generateUUID(), identifier, fileName, '', i + 1)
         setProgress(i + 1)
       }
+
+      const firstStickerPath = `${RNFS.DocumentDirectoryPath}/stickers/${identifier}/sticker_001.webp`
+      await generateTrayIcon(`file://${firstStickerPath}`, identifier)
 
       await regenerateContentsJson(identifier)
       await refreshContentProvider()
@@ -228,10 +238,4 @@ export default function CreatePackScreen() {
   )
 }
 
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
-}
+const generateUUID = uuid

@@ -4,11 +4,17 @@ import { View } from 'react-native'
 
 import { Image } from 'expo-image'
 
-import { getStickerPath } from '@/services/stickerFileManager'
-import type { PackWithStickers } from '@/types'
 import { Text, useTheme } from 'react-native-paper'
 
-export default function PackHeader({ pack }: { pack: PackWithStickers }) {
+export default function StickerPackHeader({
+  name,
+  stickerCount,
+  imageUri
+}: {
+  name: string
+  stickerCount: number
+  imageUri: string | null
+}) {
   const t = useTheme()
 
   return (
@@ -22,11 +28,9 @@ export default function PackHeader({ pack }: { pack: PackWithStickers }) {
         gap: 12
       }}
     >
-      {pack.stickers.length > 0 && (
+      {imageUri && (
         <Image
-          source={{
-            uri: `file://${getStickerPath(pack.identifier, pack.stickers[0].imageFileName)}`
-          }}
+          source={{ uri: imageUri }}
           style={{
             width: 64,
             height: 64,
@@ -41,14 +45,13 @@ export default function PackHeader({ pack }: { pack: PackWithStickers }) {
           variant="titleLarge"
           style={{ fontWeight: '700', color: t.colors.onSurface }}
         >
-          {pack.name}
+          {name}
         </Text>
         <Text
           variant="bodyMedium"
           style={{ color: t.colors.onSurfaceVariant, marginTop: 4 }}
         >
-          {pack.stickers.length} sticker
-          {pack.stickers.length !== 1 ? 's' : ''}
+          {stickerCount} sticker{stickerCount !== 1 ? 's' : ''}
         </Text>
       </View>
     </View>

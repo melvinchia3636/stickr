@@ -49,21 +49,26 @@ export async function copyImageToPack(
 
 export async function isAnimatedWebP(filePath: string): Promise<boolean> {
   try {
-    const base64 = await RNFS.read(filePath, 64, 0, 'base64')
+    const base64 = await RNFS.read(filePath, 256, 0, 'base64')
     const binary = atob(base64)
-    if (binary.length < 16) return false
+    if (binary.length < 21) return false
     if (binary.substring(0, 4) !== 'RIFF' || binary.substring(8, 12) !== 'WEBP')
       return false
 
     let offset = 12
     while (offset + 8 < binary.length) {
       const chunkId = binary.substring(offset, offset + 4)
-      if (chunkId === 'ANIM' || chunkId === 'ANMF') return true
       const chunkSize =
         binary.charCodeAt(offset + 4) |
         (binary.charCodeAt(offset + 5) << 8) |
         (binary.charCodeAt(offset + 6) << 16) |
         (binary.charCodeAt(offset + 7) << 24)
+
+      if (chunkId === 'ANIM' || chunkId === 'ANMF') return true
+      if (chunkId === 'VP8X' && chunkSize >= 4 && offset + 8 < binary.length) {
+        const flags = binary.charCodeAt(offset + 8)
+        if (flags & 0x02) return true
+      }
       offset += 8 + chunkSize + (chunkSize % 2)
     }
   } catch {}
@@ -100,7 +105,7 @@ export async function writeContentsJson(
         identifier,
         name: packName,
         publisher,
-        tray_image_file: trayImageFile || stickers[0]?.imageFileName || '',
+        tray_image_file: trayImageFile || 'tray_icon.png',
         image_data_version: '1',
         avoid_cache: false,
         animated_sticker_pack: isAnimated,

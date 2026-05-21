@@ -1,50 +1,33 @@
 import React from 'react'
 
-import { Dimensions, View } from 'react-native'
+import { Dimensions, FlatList } from 'react-native'
 
-import { Image } from 'expo-image'
-
-import { getStickerPath } from '@/services/stickerFileManager'
 import type { Sticker } from '@/types'
 
-const SCREEN_WIDTH = Dimensions.get('window').width
-const NUM_COLUMNS = 3
-const GAP = 8
-const ITEM_SIZE = (SCREEN_WIDTH - 32 - (NUM_COLUMNS - 1) * GAP) / NUM_COLUMNS
+import StickerFigure from './StickerFigure'
 
 export default function StickerGrid({
-  identifier,
-  stickers
+  stickers,
+  identifier
 }: {
-  identifier: string
   stickers: Sticker[]
+  identifier: string
 }) {
   return (
-    <View
-      style={{ flexDirection: 'row', flexWrap: 'wrap', gap: GAP, padding: 16 }}
-    >
-      {stickers.map(item => (
-        <View
-          key={item.id}
-          style={{
-            width: ITEM_SIZE,
-            height: ITEM_SIZE,
-            backgroundColor: '#F5F5F5',
-            borderRadius: 8,
-            overflow: 'hidden',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <Image
-            source={{
-              uri: `file://${getStickerPath(identifier, item.imageFileName)}`
-            }}
-            style={{ width: ITEM_SIZE * 0.9, height: ITEM_SIZE * 0.9 }}
-            contentFit="contain"
-          />
-        </View>
-      ))}
-    </View>
+    <FlatList
+      data={stickers}
+      renderItem={({ item }) => (
+        <StickerFigure
+          sticker={item}
+          identifier={identifier}
+          size={(Dimensions.get('window').width - 16 * 2 - 2 * 8) / 3}
+        />
+      )}
+      keyExtractor={item => item.id}
+      numColumns={3}
+      contentContainerStyle={{ padding: 16, gap: 8 }}
+      columnWrapperStyle={{ gap: 8 }}
+      scrollEnabled={false}
+    />
   )
 }
