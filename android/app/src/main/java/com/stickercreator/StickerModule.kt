@@ -58,29 +58,53 @@ class StickerModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
 
     @ReactMethod
     fun isStickerPackWhitelisted(identifier: String, promise: Promise) {
-        try {
-            val ourAuthority = "${reactApplicationContext.packageName}.stickercontentprovider"
-            val whatsappUri = Uri.Builder()
-                .scheme("content")
-                .authority("com.whatsapp.provider.sticker_content_provider")
-                .appendPath("is_whitelisted")
-                .appendQueryParameter("authority", ourAuthority)
-                .appendQueryParameter("identifier", identifier)
-                .build()
-            Log.d(TAG, "isStickerPackWhitelisted() uri=$whatsappUri")
-            val cursor = reactApplicationContext.contentResolver.query(whatsappUri, null, null, null, null)
-            val whitelisted = cursor?.use {
-                if (it.moveToFirst()) {
-                    val colIndex = it.getColumnIndex("result")
-                    if (colIndex >= 0) it.getString(colIndex) == "1" else false
-                } else false
-            } ?: false
-            Log.d(TAG, "  whitelisted=$whitelisted")
-            promise.resolve(whitelisted)
-        } catch (e: Exception) {
-            Log.d(TAG, "  whitelist check failed: ${e.message}")
-            promise.resolve(false)
+        val ourAuthority = "${reactApplicationContext.packageName}.stickercontentprovider"
+        Log.d(TAG, "isStickerPackWhitelisted() identifier=$identifier ourAuthority=$ourAuthority")
+
+        val whatsappAuthorities = listOf(
+            "com.whatsapp.provider.sticker_whitelist_check",
+            "com.whatsapp.w4b.provider.sticker_whitelist_check"
+        )
+
+        for (waAuthority in whatsappAuthorities) {
+            try {
+                val queryUri = Uri.Builder()
+                    .scheme("content")
+                    .authority(waAuthority)
+                    .appendPath("is_whitelisted")
+                    .appendQueryParameter("authority", ourAuthority)
+                    .appendQueryParameter("identifier", identifier)
+                    .build()
+                Log.d(TAG, "  querying: $queryUri")
+
+                val cursor = reactApplicationContext.contentResolver.query(queryUri, null, null, null, null)
+                if (cursor == null) {
+                    Log.d(TAG, "  cursor is null for $waAuthority")
+                    continue
+                }
+
+                cursor.use {
+                    Log.d(TAG, "  cursor count=${it.count} columns=${it.columnNames.joinToString()}")
+                    if (it.moveToFirst()) {
+                        val colIndex = it.getColumnIndex("result")
+                        Log.d(TAG, "  result colIndex=$colIndex")
+                        if (colIndex >= 0) {
+                            val result = it.getInt(colIndex)
+                            Log.d(TAG, "  result value=$result")
+                            if (result == 1) {
+                                promise.resolve(true)
+                                return
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "  query failed for $waAuthority: ${e.message}")
+            }
         }
+
+        Log.d(TAG, "  not whitelisted")
+        promise.resolve(false)
     }
 
     @ReactMethod

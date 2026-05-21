@@ -1,17 +1,17 @@
-import { open } from 'react-native-nitro-sqlite';
+import { open } from 'react-native-nitro-sqlite'
 
-let db: ReturnType<typeof open> | null = null;
-let ready: Promise<void> | null = null;
+let db: ReturnType<typeof open> | null = null
+let ready: Promise<void> | null = null
 
 function initDatabase(): void {
-  if (db) return;
+  if (db) return
   db = open({
     name: 'stickercreator.db',
-    location: 'default',
-  });
+    location: 'default'
+  })
 
-  db.execute('PRAGMA journal_mode = DELETE');
-  db.execute('PRAGMA synchronous = FULL');
+  db.execute('PRAGMA journal_mode = DELETE')
+  db.execute('PRAGMA synchronous = FULL')
 
   db.execute(`
     CREATE TABLE IF NOT EXISTS sticker_packs (
@@ -24,7 +24,7 @@ function initDatabase(): void {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
-  `);
+  `)
 
   db.execute(`
     CREATE TABLE IF NOT EXISTS stickers (
@@ -36,20 +36,20 @@ function initDatabase(): void {
       sort_order INTEGER NOT NULL,
       FOREIGN KEY (pack_id) REFERENCES sticker_packs(id) ON DELETE CASCADE
     )
-  `);
+  `)
 }
 
 export function getDatabase(): ReturnType<typeof open> {
   if (!db) {
-    initDatabase();
+    initDatabase()
   }
-  return db!;
+  return db!
 }
 
 export function closeDatabase(): void {
   if (db) {
-    db.close();
-    db = null;
-    ready = null;
+    db.close()
+    db = null
+    ready = null
   }
 }
