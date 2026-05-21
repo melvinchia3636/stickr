@@ -2,12 +2,12 @@ import React, { useCallback, useState } from 'react'
 
 import { ActivityIndicator, View } from 'react-native'
 
-import { useFocusEffect } from 'expo-router'
+import { Stack, useFocusEffect, useRouter } from 'expo-router'
 
 import EmptyState from '@/components/EmptyState'
 import { getAllPacks, getStickerCountForPack } from '@/database/packRepository'
 import type { StickerPack } from '@/types'
-import { useTheme } from 'react-native-paper'
+import { IconButton, useTheme } from 'react-native-paper'
 
 import HomeFab from './components/HomeFab'
 import HomeHeader from './components/HomeHeader'
@@ -15,6 +15,7 @@ import PackList from './components/PackList'
 
 export default function HomeScreen() {
   const t = useTheme()
+  const router = useRouter()
   const [packs, setPacks] = useState<StickerPack[]>([])
   const [stickerCounts, setStickerCounts] = useState<Record<string, number>>({})
   const [refreshing, setRefreshing] = useState(false)
@@ -43,7 +44,23 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.colors.background }}>
+      <Stack.Screen
+        options={{
+          headerRight: function () {
+            return (
+              <IconButton
+                icon="cog"
+                iconColor={t.colors.onSurface}
+                onPress={function () {
+                  router.push('/settings')
+                }}
+              />
+            )
+          }
+        }}
+      />
       <HomeHeader count={packs.length} />
+
       <HomeFab />
       {loading ? (
         <ActivityIndicator

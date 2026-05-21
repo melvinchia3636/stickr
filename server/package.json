@@ -1,0 +1,21 @@
+{
+  "name": "sticker-converter-server",
+  "version": "1.0.0",
+  "description": "Express.js FFmpeg Sticker Conversion Server",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "cors": "2.8.6",
+    "chalk": "5.6.2"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/cors": "2.8.19",
+    "@types/node": "25.9.1"
+  },
+  "private": true
+}
