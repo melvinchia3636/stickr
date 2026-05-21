@@ -161,9 +161,7 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
             contentStyle={{ paddingVertical: 8 }}
             onPress={handleAddToWhatsApp}
             disabled={adding}
-            icon={() => (
-              <Icon source="whatsapp" size={22} color={t.colors.onPrimary} />
-            )}
+            icon="whatsapp"
           >
             {adding ? 'Opening WhatsApp...' : 'Add Remaining Parts'}
           </Button>
@@ -174,9 +172,7 @@ export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
           buttonColor={adding ? t.colors.surfaceDisabled : t.colors.primary}
           onPress={handleAddToWhatsApp}
           disabled={adding}
-          icon={() => (
-            <Icon source="whatsapp" size={22} color={t.colors.onPrimary} />
-          )}
+          icon="whatsapp"
         >
           {adding ? 'Opening WhatsApp...' : 'Add to WhatsApp'}
         </Button>

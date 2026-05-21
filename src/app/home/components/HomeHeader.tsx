@@ -17,10 +17,7 @@ export default function HomeHeader({ count }: { count: number }) {
         alignItems: 'baseline'
       }}
     >
-      <Text
-        variant="titleLarge"
-        style={{ fontWeight: '700', color: t.colors.onSurface }}
-      >
+      <Text variant="titleLarge" style={{ color: t.colors.onSurface }}>
         Stickers Library
       </Text>
       {count > 0 && (

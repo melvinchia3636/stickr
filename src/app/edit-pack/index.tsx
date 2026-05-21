@@ -91,9 +91,7 @@ export default function EditPackScreen() {
         <Button
           mode="contained"
           onPress={handleSaveName}
-          icon={() => (
-            <Icon source="check" size={20} color={t.colors.onPrimary} />
-          )}
+          icon="check"
         >
           Save
         </Button>

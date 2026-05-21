@@ -1,14 +1,14 @@
 import React, { useCallback, useState } from 'react'
 
-import { ActivityIndicator, FlatList, RefreshControl, View } from 'react-native'
+import { ActivityIndicator, View } from 'react-native'
 
 import { useFocusEffect } from 'expo-router'
 
+import EmptyState from '@/components/EmptyState'
 import { getAllPacks, getStickerCountForPack } from '@/database/packRepository'
 import type { StickerPack } from '@/types'
 import { useTheme } from 'react-native-paper'
 
-import EmptyState from './components/EmptyState'
 import HomeFab from './components/HomeFab'
 import HomeHeader from './components/HomeHeader'
 import PackList from './components/PackList'
@@ -52,7 +52,10 @@ export default function HomeScreen() {
           color={t.colors.primary}
         />
       ) : packs.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          message="No sticker packs yet"
+          subtitle="Create your own pack or browse SigStick to get started"
+        />
       ) : (
         <PackList
           packs={packs}

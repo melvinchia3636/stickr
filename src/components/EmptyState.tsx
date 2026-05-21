@@ -4,7 +4,13 @@ import { View } from 'react-native'
 
 import { Icon, Text, useTheme } from 'react-native-paper'
 
-export default function EmptyState() {
+export default function EmptyState({
+  message,
+  subtitle
+}: {
+  message: string
+  subtitle?: string
+}) {
   const t = useTheme()
 
   return (
@@ -27,14 +33,16 @@ export default function EmptyState() {
         variant="titleLarge"
         style={{ color: t.colors.onSurface, marginBottom: 8 }}
       >
-        No sticker packs yet
+        {message}
       </Text>
-      <Text
-        variant="bodyMedium"
-        style={{ color: t.colors.onSurfaceVariant, textAlign: 'center' }}
-      >
-        Create your own pack or browse SigStick to get started
-      </Text>
+      {subtitle && (
+        <Text
+          variant="bodyMedium"
+          style={{ color: t.colors.onSurfaceVariant, textAlign: 'center' }}
+        >
+          {subtitle}
+        </Text>
+      )}
     </View>
   )
 }

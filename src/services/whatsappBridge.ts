@@ -43,7 +43,8 @@ export async function refreshContentProvider(): Promise<void> {
 export async function validateStickerPack(
   identifier: string
 ): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> {
-  if (Platform.OS !== 'android') return { valid: true, errors: [], warnings: [] }
+  if (Platform.OS !== 'android')
+    return { valid: true, errors: [], warnings: [] }
   const module = await checkModule()
   const result = await module.validateStickerPack(identifier)
   console.log(`[Validate] pack=${identifier} valid=${result.valid}`)

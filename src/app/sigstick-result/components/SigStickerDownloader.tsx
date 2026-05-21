@@ -112,9 +112,7 @@ export default function SigStickerDownloader({
           contentStyle={{ paddingVertical: 8 }}
           onPress={handleDownload}
           disabled={downloading}
-          icon={() => (
-            <Icon source="download" size={22} color={t.colors.onPrimary} />
-          )}
+          icon="download"
         >
           {downloading ? 'Downloading...' : 'Download & Add to My Packs'}
         </Button>
