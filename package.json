@@ -16,6 +16,7 @@
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/elements": "^2.9.10",
     "@react-navigation/native": "^7.1.33",
+    "drizzle-orm": "^0.45.2",
     "expo": "~55.0.25",
     "expo-constants": "~55.0.16",
     "expo-device": "~55.0.17",
@@ -52,6 +53,9 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~55.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "prettier": "^3.8.3",
     "typescript": "~5.9.2"
   },

@@ -7,6 +7,7 @@ import type { Sticker } from '@/types'
 import StickerFigure from './StickerFigure'
 
 const GAP = 8
+
 const SCREEN_WIDTH = Dimensions.get('window').width
 
 export default function StickerGrid({
@@ -24,19 +25,19 @@ export default function StickerGrid({
 
   return (
     <FlatList
+      columnWrapperStyle={{ gap: GAP }}
+      contentContainerStyle={{ paddingHorizontal: padding, gap: GAP }}
       data={stickers}
+      keyExtractor={item => item.id}
+      numColumns={3}
       renderItem={({ item }) => (
         <StickerFigure
-          sticker={item}
           identifier={identifier}
           size={size}
+          sticker={item}
           onRemove={onRemoveSticker ? () => onRemoveSticker(item) : undefined}
         />
       )}
-      keyExtractor={item => item.id}
-      numColumns={3}
-      contentContainerStyle={{ paddingHorizontal: padding, gap: GAP }}
-      columnWrapperStyle={{ gap: GAP }}
       scrollEnabled={false}
     />
   )

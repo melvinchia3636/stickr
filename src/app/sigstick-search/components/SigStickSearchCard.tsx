@@ -16,10 +16,12 @@ export default function SigStickSearchCard({
   isDownloaded: boolean
 }) {
   const t = useTheme()
+
   const router = useRouter()
 
   return (
     <TouchableOpacity
+      activeOpacity={0.7}
       style={{
         flex: 1,
         backgroundColor: t.colors.surface,
@@ -33,8 +35,7 @@ export default function SigStickSearchCard({
         shadowOffset: { width: 0, height: 1 },
         elevation: 1
       }}
-      activeOpacity={0.7}
-      onPress={function () {
+      onPress={() => {
         router.push({
           pathname: '/sigstick-result',
           params: { packId: item.id, packTitle: item.title }
@@ -43,9 +44,9 @@ export default function SigStickSearchCard({
     >
       {item.thumbnail ? (
         <Image
+          contentFit="contain"
           source={{ uri: item.thumbnail }}
           style={{ width: '100%', aspectRatio: 1 }}
-          contentFit="contain"
         />
       ) : (
         <View
@@ -58,16 +59,16 @@ export default function SigStickSearchCard({
           }}
         >
           <Icon
-            source="sticker-emoji"
-            size={40}
             color={t.colors.onSurfaceVariant}
+            size={40}
+            source="sticker-emoji"
           />
         </View>
       )}
       <Text
-        variant="bodyLarge"
-        style={{ color: t.colors.onSurface, padding: 8 }}
         numberOfLines={2}
+        style={{ color: t.colors.onSurface, padding: 8 }}
+        variant="bodyLarge"
       >
         {item.title}
       </Text>
@@ -91,7 +92,7 @@ export default function SigStickSearchCard({
             elevation: 2
           }}
         >
-          <Icon source="check" size={16} color={t.colors.onPrimary} />
+          <Icon color={t.colors.onPrimary} size={16} source="check" />
         </View>
       )}
     </TouchableOpacity>

@@ -14,6 +14,7 @@ export default function ProgressBar({
   label?: string
 }) {
   const t = useTheme()
+
   const pct = total > 0 ? Math.round((progress / total) * 100) : 0
 
   return (
@@ -29,7 +30,7 @@ export default function ProgressBar({
           {label}
         </Text>
       )}
-      <PaperProgressBar progress={pct / 100} color={t.colors.primary} />
+      <PaperProgressBar color={t.colors.primary} progress={pct / 100} />
       <Text
         style={{
           fontSize: 14,

@@ -2,7 +2,7 @@ import React from 'react'
 
 import { Image, TouchableOpacity, View } from 'react-native'
 
-import { useAlertStore } from '@/components/AlertManager'
+import { useAlertStore } from '@/components/ui/AlertManager'
 import { launchImageLibrary } from 'react-native-image-picker'
 import { Icon, Text, useTheme } from 'react-native-paper'
 
@@ -16,6 +16,7 @@ export default function StickerSection({
   onChooseLabel: string
 }) {
   const t = useTheme()
+
   const { openAlert } = useAlertStore()
 
   const pickImages = () =>
@@ -23,6 +24,7 @@ export default function StickerSection({
       { mediaType: 'photo', selectionLimit: 30, quality: 1 },
       response => {
         if (response.didCancel) return
+
         if (response.errorCode) {
           openAlert({
             title: 'Error',
@@ -31,11 +33,14 @@ export default function StickerSection({
             iconColor: t.colors.error,
             actions: [{ text: 'OK' }]
           })
+
           return
         }
+
         const uris = (response.assets || [])
           .map(a => a.uri)
           .filter((u): u is string => !!u)
+
         onImagesChange([...selectedImages, ...uris].slice(0, 30))
       }
     )
@@ -46,8 +51,8 @@ export default function StickerSection({
   return (
     <>
       <Text
-        variant="titleMedium"
         style={{ color: t.colors.onSurface, marginBottom: 6, marginTop: 16 }}
+        variant="titleMedium"
       >
         Stickers ({selectedImages.length}/30)
       </Text>
@@ -87,7 +92,7 @@ export default function StickerSection({
                 }}
                 onPress={() => removeImage(index)}
               >
-                <Icon source="close" size={12} color="#FFF" />
+                <Icon color="#FFF" size={12} source="close" />
               </TouchableOpacity>
             </View>
           ))}
@@ -108,10 +113,10 @@ export default function StickerSection({
         }}
         onPress={pickImages}
       >
-        <Icon source="plus" size={18} color={t.colors.primary} />
+        <Icon color={t.colors.primary} size={18} source="plus" />
         <Text
-          variant="titleSmall"
           style={{ color: t.colors.primary, marginLeft: 4 }}
+          variant="titleSmall"
         >
           {onChooseLabel}
         </Text>

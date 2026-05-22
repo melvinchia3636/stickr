@@ -6,8 +6,7 @@ import { Image } from 'expo-image'
 
 import { getStickerPath } from '@/services/stickerFileManager'
 import type { Sticker } from '@/types'
-import { Icon } from 'react-native-paper'
-import { useTheme } from 'react-native-paper'
+import { Icon, useTheme } from 'react-native-paper'
 
 export default function StickerFigure({
   sticker,
@@ -41,17 +40,16 @@ export default function StickerFigure({
       }}
     >
       <Image
+        contentFit="contain"
         source={{
           uri: sticker.imageFileName.startsWith('http')
             ? sticker.imageFileName
             : `file://${getStickerPath(identifier, sticker.imageFileName)}`
         }}
         style={{ width: size - 10, height: size - 10 }}
-        contentFit="contain"
       />
       {onRemove && (
         <TouchableOpacity
-          onPress={onRemove}
           style={{
             position: 'absolute',
             top: 2,
@@ -63,8 +61,9 @@ export default function StickerFigure({
             alignItems: 'center',
             justifyContent: 'center'
           }}
+          onPress={onRemove}
         >
-          <Icon source="close" size={12} color="#FFF" />
+          <Icon color="#FFF" size={12} source="close" />
         </TouchableOpacity>
       )}
     </View>

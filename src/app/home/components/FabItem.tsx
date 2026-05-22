@@ -51,10 +51,10 @@ export default function FabItem({
           }}
           onPress={onPress}
         >
-          <Icon source={icon} size={20} color={t.colors.primary} />
+          <Icon color={t.colors.primary} size={20} source={icon} />
           <Text
-            variant="labelLarge"
             style={{ marginLeft: 8, color: t.colors.onSurface }}
+            variant="labelLarge"
           >
             {label}
           </Text>

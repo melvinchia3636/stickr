@@ -1,12 +1,10 @@
 import React, { useState } from 'react'
 
-import { View } from 'react-native'
-
 import { useRouter } from 'expo-router'
 
-import { useAlertStore } from '@/components/AlertManager'
-import ProgressBar from '@/components/ProgressBar'
-import { addSticker, createPack } from '@/database/packRepository'
+import { useAlertStore } from '@/components/ui/AlertManager'
+import ProgressBar from '@/components/ui/ProgressBar'
+import { addSticker, createPack } from '@/database/repositories'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
 import {
   TRAY_FILE_NAME,
@@ -20,26 +18,30 @@ import 'react-native-get-random-values'
 import { Button, useTheme } from 'react-native-paper'
 import { v4 as uuid } from 'uuid'
 
-interface Props {
-  packName: string
-  selectedImages: string[]
-  disabled: boolean
-}
-
 export default function CreatePackButton({
   packName,
   selectedImages,
   disabled
-}: Props) {
+}: {
+  packName: string
+  selectedImages: string[]
+  disabled: boolean
+}) {
   const t = useTheme()
+
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState(0)
+
   const { openAlert } = useAlertStore()
+
+  const [loading, setLoading] = useState(false)
+
+  const [progress, setProgress] = useState(0)
+
   const [total, setTotal] = useState(0)
 
   const handleCreate = async () => {
     const name = packName.trim()
+
     if (!name) {
       openAlert({
         title: 'Error',
@@ -48,8 +50,10 @@ export default function CreatePackButton({
         iconColor: t.colors.error,
         actions: [{ text: 'OK' }]
       })
+
       return
     }
+
     if (selectedImages.length < 3) {
       openAlert({
         title: 'Error',
@@ -58,6 +62,7 @@ export default function CreatePackButton({
         iconColor: t.colors.error,
         actions: [{ text: 'OK' }]
       })
+
       return
     }
 
@@ -67,16 +72,20 @@ export default function CreatePackButton({
 
     try {
       await ensureStickersDir()
+
       const identifier = uuid()
+
       await createPack(name, identifier, TRAY_FILE_NAME)
 
       for (let i = 0; i < selectedImages.length; i++) {
         const fileName = `sticker_${String(i + 1).padStart(3, '0')}.webp`
+
         const result = await convertToStickerWebP(
           selectedImages[i]!,
           identifier,
           fileName
         )
+
         if (!result.success) throw new Error(`Failed to convert image ${i + 1}`)
         await addSticker(uuid(), identifier, fileName, '', i + 1)
         setProgress(i + 1)
@@ -121,17 +130,17 @@ export default function CreatePackButton({
     <>
       {loading && (
         <ProgressBar
+          label="Converting stickers..."
           progress={progress}
           total={total}
-          label="Converting stickers..."
         />
       )}
       <Button
+        disabled={disabled || loading}
+        icon="plus"
         mode="contained"
         style={{ marginTop: 24 }}
         onPress={handleCreate}
-        disabled={disabled || loading}
-        icon="plus"
       >
         {loading ? 'Creating...' : 'Create Pack'}
       </Button>

@@ -1,7 +1,10 @@
+import { drizzle } from 'drizzle-orm/sqlite-proxy'
 import { open } from 'react-native-nitro-sqlite'
 
+import * as schema from './schema'
+
 let db: ReturnType<typeof open> | null = null
-let ready: Promise<void> | null = null
+let drizzleDb: ReturnType<typeof drizzle<typeof schema>> | null = null
 
 function initDatabase(): void {
   if (db) return
@@ -29,7 +32,7 @@ function initDatabase(): void {
 
   try {
     db.execute('ALTER TABLE sticker_packs ADD COLUMN sigstick_id TEXT')
-  } catch (e) {
+  } catch {
     // Column already exists, ignore error
   }
 
@@ -53,17 +56,81 @@ function initDatabase(): void {
   `)
 }
 
-export function getDatabase(): ReturnType<typeof open> {
+function extractColumnsFromSql(sql: string): string[] {
+  const selectMatch = sql.match(/^\s*select\s+(.+?)\s+from\b/i)
+
+  if (!selectMatch) {
+    return []
+  }
+
+  const columnsPart = selectMatch[1]
+
+  const parts = columnsPart.split(',')
+
+  return parts.map(part => {
+    const aliasParts = part.split(/\s+as\s+/i)
+
+    let columnExpr = aliasParts[aliasParts.length - 1].trim()
+
+    const dotParts = columnExpr.split('.')
+
+    columnExpr = dotParts[dotParts.length - 1].trim()
+
+    return columnExpr.replace(/["`]/g, '').trim()
+  })
+}
+
+export function getDrizzle() {
+  if (drizzleDb) {
+    return drizzleDb
+  }
+
   if (!db) {
     initDatabase()
   }
-  return db!
+
+  drizzleDb = drizzle<typeof schema>(
+    async (sql, params, method) => {
+      const result = db!.execute(sql, params)
+
+      const rawRows = result.rows?._array || []
+
+      const columns = extractColumnsFromSql(sql)
+
+      const mapRow = (row: Record<string, unknown>) => {
+        if (columns.length > 0) {
+          return columns.map(col => row[col])
+        }
+
+        return Object.values(row)
+      }
+
+      if (method === 'get') {
+        return {
+          rows: rawRows.length > 0 ? mapRow(rawRows[0]) : []
+        }
+      }
+
+      if (method === 'all' || method === 'values') {
+        return {
+          rows: rawRows.map((row: Record<string, unknown>) => mapRow(row))
+        }
+      }
+
+      return {
+        rows: []
+      }
+    },
+    { schema }
+  )
+
+  return drizzleDb
 }
 
 export function closeDatabase(): void {
   if (db) {
     db.close()
     db = null
-    ready = null
+    drizzleDb = null
   }
 }

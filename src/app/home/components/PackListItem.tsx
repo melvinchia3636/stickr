@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 
 import { useRouter } from 'expo-router'
 
-import { useAlertStore } from '@/components/AlertManager'
 import PackCard from '@/components/PackCard'
-import { deletePack } from '@/database/packRepository'
+import { useAlertStore } from '@/components/ui/AlertManager'
+import { deletePack } from '@/database/repositories'
 import { deletePackDir } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { StickerPack } from '@/types'
@@ -20,9 +20,13 @@ export default function PackListItem({
   onDeleted: () => void
 }) {
   const router = useRouter()
+
   const t = useTheme()
+
   const { openAlert } = useAlertStore()
+
   const [menuVisible, setMenuVisible] = useState(false)
+
   const [menuAnchor, setMenuAnchor] = useState({ x: 0, y: 0 })
 
   const handleDelete = async () => {
@@ -37,23 +41,24 @@ export default function PackListItem({
       <PackCard
         pack={pack}
         stickerCount={stickerCount}
-        onPress={() =>
-          router.push({ pathname: '/pack-detail', params: { packId: pack.id } })
-        }
         onMenuPress={(x, y) => {
           setMenuAnchor({ x: x + 20, y: y + 20 })
           setMenuVisible(true)
         }}
+        onPress={() =>
+          router.push({ pathname: '/pack-detail', params: { packId: pack.id } })
+        }
       />
 
       <Portal>
         <Menu
+          anchor={menuAnchor}
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
-          anchor={menuAnchor}
         >
           <Menu.Item
             leadingIcon="pencil"
+            title="Edit"
             onPress={() => {
               setMenuVisible(false)
               router.push({
@@ -61,10 +66,10 @@ export default function PackListItem({
                 params: { packId: pack.id }
               })
             }}
-            title="Edit"
           />
           <Menu.Item
             leadingIcon="delete"
+            title="Delete"
             onPress={() => {
               setMenuVisible(false)
               openAlert({
@@ -82,7 +87,6 @@ export default function PackListItem({
                 ]
               })
             }}
-            title="Delete"
           />
         </Menu>
       </Portal>

@@ -1,23 +1,10 @@
-export interface StickerPack {
-  id: string
-  name: string
-  identifier: string
-  publisher: string
-  trayImageFile: string | null
-  imageDataVersion: string
-  createdAt: number
-  updatedAt: number
-  sigstickId?: string | null
-}
+import { type InferSelectModel } from 'drizzle-orm'
 
-export interface Sticker {
-  id: string
-  packId: string
-  imageFileName: string
-  emojis: string
-  accessibilityText: string
-  sortOrder: number
-}
+import { stickerPacks, stickers } from './database/schema'
+
+export type StickerPack = InferSelectModel<typeof stickerPacks>
+
+export type Sticker = InferSelectModel<typeof stickers>
 
 export interface PackWithStickers extends StickerPack {
   stickers: Sticker[]

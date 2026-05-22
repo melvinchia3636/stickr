@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 
 import { Animated, TouchableOpacity, View } from 'react-native'
 
@@ -10,12 +10,16 @@ import FabItem from './FabItem'
 
 export default function HomeFab() {
   const router = useRouter()
+
   const t = useTheme()
+
   const anim = useRef(new Animated.Value(0)).current
-  const [open, setOpen] = React.useState(false)
+
+  const [open, setOpen] = useState(false)
 
   const toggle = () => {
     const next = !open
+
     setOpen(next)
     Animated.spring(anim, {
       toValue: next ? 1 : 0,
@@ -39,6 +43,7 @@ export default function HomeFab() {
     <>
       {open && (
         <TouchableOpacity
+          activeOpacity={1}
           style={{
             position: 'absolute',
             top: 0,
@@ -47,12 +52,12 @@ export default function HomeFab() {
             bottom: 0,
             zIndex: 10
           }}
-          activeOpacity={1}
           onPress={() => close()}
         />
       )}
 
       <View
+        pointerEvents={open ? 'auto' : 'none'}
         style={{
           position: 'absolute',
           bottom: 96,
@@ -61,7 +66,6 @@ export default function HomeFab() {
           zIndex: 20,
           opacity: open ? 1 : 0
         }}
-        pointerEvents={open ? 'auto' : 'none'}
       >
         {[
           {
@@ -73,10 +77,10 @@ export default function HomeFab() {
         ].map((item, i) => (
           <FabItem
             key={item.route}
-            icon={item.icon}
-            label={item.label}
-            index={i}
             anim={anim}
+            icon={item.icon}
+            index={i}
+            label={item.label}
             onPress={() => close(() => router.push(item.route as any))}
           />
         ))}
@@ -114,7 +118,7 @@ export default function HomeFab() {
             ]
           }}
         >
-          <Icon source="plus" size={28} color={t.colors.onPrimary} />
+          <Icon color={t.colors.onPrimary} size={28} source="plus" />
         </Animated.View>
       </TouchableOpacity>
     </>

@@ -24,21 +24,21 @@ export default function EmptyState({
     >
       <View style={{ marginBottom: 16 }}>
         <Icon
-          source="sticker-emoji"
-          size={64}
           color={t.colors.onSurfaceVariant}
+          size={64}
+          source="sticker-emoji"
         />
       </View>
       <Text
-        variant="titleLarge"
         style={{ color: t.colors.onSurface, marginBottom: 8 }}
+        variant="titleLarge"
       >
         {message}
       </Text>
       {subtitle && (
         <Text
-          variant="bodyMedium"
           style={{ color: t.colors.onSurfaceVariant, textAlign: 'center' }}
+          variant="bodyMedium"
         >
           {subtitle}
         </Text>

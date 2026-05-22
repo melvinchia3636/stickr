@@ -30,6 +30,7 @@ export default function StickerPackHeader({
     >
       {imageUri && (
         <Image
+          contentFit="contain"
           source={{ uri: imageUri }}
           style={{
             width: 64,
@@ -37,19 +38,18 @@ export default function StickerPackHeader({
             borderRadius: 12,
             backgroundColor: t.colors.surface
           }}
-          contentFit="contain"
         />
       )}
       <View style={{ flex: 1 }}>
         <Text
-          variant="titleLarge"
           style={{ fontWeight: '700', color: t.colors.onSurface }}
+          variant="titleLarge"
         >
           {name}
         </Text>
         <Text
-          variant="bodyMedium"
           style={{ color: t.colors.onSurfaceVariant, marginTop: 4 }}
+          variant="bodyMedium"
         >
           {stickerCount} sticker{stickerCount !== 1 ? 's' : ''}
         </Text>

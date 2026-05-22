@@ -4,8 +4,8 @@ import { StatusBar, useColorScheme } from 'react-native'
 
 import { Stack } from 'expo-router'
 
-import AlertProvider from '@/components/AlertManager'
 import StickrHeader from '@/components/StickrHeader'
+import { AlertProvider } from '@/components/ui/AlertManager'
 import { darkTheme } from '@/themes/dark'
 import { lightTheme } from '@/themes/light'
 import {
@@ -35,11 +35,13 @@ const SCREENS: {
 
 export default function Layout() {
   const isDark = useColorScheme() === 'dark'
+
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_700Bold
   })
+
   const theme = isDark ? darkTheme : lightTheme
 
   if (!fontsLoaded) return null

@@ -4,7 +4,7 @@ import { View } from 'react-native'
 
 import { useFocusEffect } from 'expo-router'
 
-import { getAllPacks } from '@/database/packRepository'
+import { getAllPacks } from '@/database/repositories'
 import type { SigStickSearchResult } from '@/types'
 import { useTheme } from 'react-native-paper'
 
@@ -13,13 +13,18 @@ import SigStickSearchResults from './components/SigStickSearchResults'
 
 export default function SigStickSearchScreen() {
   const t = useTheme()
+
   const [results, setResults] = useState<SigStickSearchResult[]>([])
+
   const [loading, setLoading] = useState(false)
+
   const [searched, setSearched] = useState(false)
+
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set())
 
-  const loadDownloadedPacks = useCallback(() => {
-    const all = getAllPacks()
+  const loadDownloadedPacks = useCallback(async () => {
+    const all = await getAllPacks()
+
     setDownloadedIds(
       new Set(
         all
@@ -38,15 +43,15 @@ export default function SigStickSearchScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: t.colors.background }}>
       <SearchBar
-        onResults={setResults}
         onLoadingChange={setLoading}
+        onResults={setResults}
         onSearchedChange={setSearched}
       />
       <SigStickSearchResults
-        results={results}
-        loading={loading}
-        searched={searched}
         downloadedIds={downloadedIds}
+        loading={loading}
+        results={results}
+        searched={searched}
       />
     </View>
   )

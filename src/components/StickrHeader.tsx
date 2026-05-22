@@ -9,8 +9,8 @@ export default function StickrHeader() {
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Icon source="sticker-emoji" size={24} color={t.colors.primary} />
-      <Text variant="titleLarge" style={{ color: t.colors.onSurface }}>
+      <Icon color={t.colors.primary} size={24} source="sticker-emoji" />
+      <Text style={{ color: t.colors.onSurface }} variant="titleLarge">
         Stickr
       </Text>
     </View>

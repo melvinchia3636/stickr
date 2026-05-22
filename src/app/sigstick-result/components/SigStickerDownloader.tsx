@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 
 import { View } from 'react-native'
 
-import { useAlertStore } from '@/components/AlertManager'
-import ProgressBar from '@/components/ProgressBar'
-import { getPackWithStickers } from '@/database/packRepository'
+import { useAlertStore } from '@/components/ui/AlertManager'
+import ProgressBar from '@/components/ui/ProgressBar'
+import { getPackWithStickers } from '@/database/repositories'
 import { addPackToWhatsApp } from '@/services/packSplitter'
 import { downloadSigStickPack } from '@/services/sigstickApi'
 import { Button, useTheme } from 'react-native-paper'
@@ -23,8 +23,11 @@ export default function SigStickerDownloader({
   onDownloaded?: () => void
 }) {
   const t = useTheme()
+
   const { openAlert } = useAlertStore()
+
   const [downloading, setDownloading] = useState(false)
+
   const [downloadProgress, setDownloadProgress] = useState(0)
 
   async function handleDownload() {
@@ -43,7 +46,8 @@ export default function SigStickerDownloader({
       setDownloading(false)
       onDownloaded?.()
 
-      const localPack = getPackWithStickers(identifier)
+      const localPack = await getPackWithStickers(identifier)
+
       if (!localPack) return
 
       try {
@@ -73,9 +77,9 @@ export default function SigStickerDownloader({
     <>
       {downloading && (
         <ProgressBar
+          label="Downloading stickers..."
           progress={downloadProgress}
           total={stickerUrls.length}
-          label="Downloading stickers..."
         />
       )}
       <View
@@ -87,14 +91,14 @@ export default function SigStickerDownloader({
         }}
       >
         <Button
-          mode="contained"
           buttonColor={
             downloading ? t.colors.surfaceDisabled : t.colors.primary
           }
           contentStyle={{ paddingVertical: 8 }}
-          onPress={handleDownload}
           disabled={downloading}
           icon="download"
+          mode="contained"
+          onPress={handleDownload}
         >
           {downloading ? 'Downloading...' : 'Download & Add to My Packs'}
         </Button>
