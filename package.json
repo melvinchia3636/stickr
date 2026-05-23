@@ -1,14 +1,22 @@
 {
   "name": "stickr",
-  "main": "expo-router/entry",
   "version": "1.0.0",
+  "description": "Create, browse, download stickers from sigstick.com, and manage WhatsApp sticker packs. Converts images/videos to WhatsApp-compliant WebP stickers with a companion Express conversion server.",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
+    "build:android": "cd android && ./gradlew assembleRelease",
     "prebuild": "bash scripts/prebuild-android.sh",
     "lint": "expo lint"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/melvinchia3636/stickr.git"
+  },
+  "author": "melvinchia3636",
+  "license": "MIT",
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@react-native-vector-icons/material-design-icons": "^13.1.1",

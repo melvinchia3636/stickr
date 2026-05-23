@@ -61,7 +61,9 @@ export async function isAnimatedWebP(filePath: string): Promise<boolean> {
   return false
 }
 
-export async function isAnimatedWebPAndLoop0(filePath: string): Promise<boolean> {
+export async function isAnimatedWebPAndLoop0(
+  filePath: string
+): Promise<boolean> {
   try {
     const base64Str = await RNFS.read(filePath, 256, 0, 'base64')
 
@@ -225,15 +227,18 @@ export async function getWebPMetadata(filePath: string): Promise<WebPMetadata> {
             bytes[offset + 8] |
             (bytes[offset + 9] << 8) |
             (bytes[offset + 10] << 16)
+
           const yOffset =
             bytes[offset + 11] |
             (bytes[offset + 12] << 8) |
             (bytes[offset + 13] << 16)
+
           const frameWidth =
             1 +
             (bytes[offset + 14] |
               (bytes[offset + 15] << 8) |
               (bytes[offset + 16] << 16))
+
           const frameHeight =
             1 +
             (bytes[offset + 17] |
@@ -243,6 +248,7 @@ export async function getWebPMetadata(filePath: string): Promise<WebPMetadata> {
           if (xOffset !== 0 || yOffset !== 0) {
             result.hasNonZeroOffsets = true
           }
+
           if (frameWidth !== 512 || frameHeight !== 512) {
             result.hasNon512Frame = true
           }
@@ -271,26 +277,31 @@ export async function getWebPMetadata(filePath: string): Promise<WebPMetadata> {
 
       if (chunkId === 'VP8 ' && chunkSize >= 10 && offset + 17 < bytes.length) {
         const payloadOffset = offset + 8
+
         if (
           bytes[payloadOffset + 3] === 0x9d &&
           bytes[payloadOffset + 4] === 0x01 &&
           bytes[payloadOffset + 5] === 0x2a
         ) {
           result.width =
-            (bytes[payloadOffset + 6] | (bytes[payloadOffset + 7] << 8)) & 0x3fff
+            (bytes[payloadOffset + 6] | (bytes[payloadOffset + 7] << 8)) &
+            0x3fff
           result.height =
-            (bytes[payloadOffset + 8] | (bytes[payloadOffset + 9] << 8)) & 0x3fff
+            (bytes[payloadOffset + 8] | (bytes[payloadOffset + 9] << 8)) &
+            0x3fff
         }
       }
 
       if (chunkId === 'VP8L' && chunkSize >= 5 && offset + 12 < bytes.length) {
         const payloadOffset = offset + 8
+
         if (bytes[payloadOffset] === 0x2f) {
           const val =
             bytes[payloadOffset + 1] |
             (bytes[payloadOffset + 2] << 8) |
             (bytes[payloadOffset + 3] << 16) |
             (bytes[payloadOffset + 4] << 24)
+
           result.width = 1 + (val & 0x3fff)
           result.height = 1 + ((val >> 14) & 0x3fff)
         }
@@ -336,4 +347,14 @@ export async function isStickerWhatsAppCompliant(
   }
 }
 
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  let binary = ''
 
+  const bytes = new Uint8Array(buffer)
+
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+
+  return btoa(binary)
+}

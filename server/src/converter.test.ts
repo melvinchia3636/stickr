@@ -3,13 +3,13 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
+import type { convertWithCompressionFallback as FallbackFn } from './lib/compression'
+import type { processStickerInput as ConvertFn } from './lib/sticker'
+import type { generateTrayIcon as TrayFn } from './lib/tray-icon'
 import type {
-  convertToWebPServerFlow as ConvertFn,
-  convertWithCompressionFallback as FallbackFn,
   isWebPFile as IsWebPFileFn,
-  parseWebPInfo as ParseWebPInfoFn,
-  generateTrayIconServer as TrayFn
-} from './converter'
+  parseWebPInfo as ParseWebPInfoFn
+} from './lib/webp-info'
 
 // Register mock before importing the target module
 mock.module('child_process', () => ({
@@ -46,24 +46,30 @@ mock.module('child_process', () => ({
   }
 }))
 
-let convertToWebPServerFlow: typeof ConvertFn
+let processStickerInput: typeof ConvertFn
 let convertWithCompressionFallback: typeof FallbackFn
-let generateTrayIconServer: typeof TrayFn
 let isWebPFile: typeof IsWebPFileFn
 let parseWebPInfo: typeof ParseWebPInfoFn
+let generateTrayIcon: typeof TrayFn
 
 beforeAll(async () => {
-  const mod = await import('./converter')
+  const compressionMod = await import('./lib/compression')
 
-  convertToWebPServerFlow = mod.convertToWebPServerFlow
-  convertWithCompressionFallback = mod.convertWithCompressionFallback
-  generateTrayIconServer = mod.generateTrayIconServer
-  isWebPFile = mod.isWebPFile
-  parseWebPInfo = mod.parseWebPInfo
+  const convertFlowMod = await import('./lib/sticker')
+
+  const webpInfoMod = await import('./lib/webp-info')
+
+  const trayConverterMod = await import('./lib/tray-icon')
+
+  convertWithCompressionFallback = compressionMod.convertWithCompressionFallback
+  processStickerInput = convertFlowMod.processStickerInput
+  isWebPFile = webpInfoMod.isWebPFile
+  parseWebPInfo = webpInfoMod.parseWebPInfo
+  generateTrayIcon = trayConverterMod.generateTrayIcon
 })
 
 describe('Converter Module Tests', () => {
-  test('convertToWebPServerFlow should call exec and generate a file', async () => {
+  test('processStickerInput should call exec and generate a file', async () => {
     const input = path.join(os.tmpdir(), 'input.mp4')
 
     const tempDir = fs.mkdtempSync(
@@ -75,7 +81,7 @@ describe('Converter Module Tests', () => {
     fs.writeFileSync(input, 'dummy data')
 
     try {
-      await convertToWebPServerFlow(input, tempDir, output, 70, 15)
+      await processStickerInput(input, tempDir, output, 70, 15)
       expect(fs.existsSync(output)).toBe(true)
 
       const stats = fs.statSync(output)
@@ -98,7 +104,7 @@ describe('Converter Module Tests', () => {
     }
   })
 
-  test('convertToWebPServerFlow with forceAnimated should duplicate frames and produce a file', async () => {
+  test('processStickerInput with forceAnimated should duplicate frames and produce a file', async () => {
     const input = path.join(os.tmpdir(), 'input_anim.mp4')
 
     const tempDir = fs.mkdtempSync(
@@ -110,7 +116,7 @@ describe('Converter Module Tests', () => {
     fs.writeFileSync(input, 'dummy data')
 
     try {
-      await convertToWebPServerFlow(input, tempDir, output, 70, 15, true)
+      await processStickerInput(input, tempDir, output, 70, 15, true)
       expect(fs.existsSync(output)).toBe(true)
 
       const stats = fs.statSync(output)
@@ -151,7 +157,7 @@ describe('Converter Module Tests', () => {
     }
   })
 
-  test('generateTrayIconServer should generate standard static png file', async () => {
+  test('generateTrayIcon should generate standard static png file', async () => {
     const input = path.join(os.tmpdir(), 'input3.webp')
 
     const output = path.join(os.tmpdir(), 'output3.png')
@@ -159,7 +165,7 @@ describe('Converter Module Tests', () => {
     fs.writeFileSync(input, 'dummy data')
 
     try {
-      const size = await generateTrayIconServer(input, output)
+      const size = await generateTrayIcon(input, output)
 
       expect(size).toBe(1024)
       expect(fs.existsSync(output)).toBe(true)
