@@ -1,48 +1,24 @@
-import { addSticker, createPack } from '@/database/repositories'
+import {
+  addSticker,
+  createPack,
+  getStickersForPack,
+  updatePackAnimatedStatus
+} from '@/database/repositories'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
 import {
   TRAY_FILE_NAME,
   convertToStickerWebP,
+  ensureAnimationConsistency,
   generateTrayIcon
 } from '@/services/imageProcessor'
-import { ensureStickersDir } from '@/services/stickerFileManager'
+import { ensureStickersDir, hasAnimatedStickers } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
+import { SigStickPack, SigStickSearchResult } from '@/types'
+import { deepDecodeURIComponent } from '@/utils/string'
 import { parse as parseHTML } from 'node-html-parser'
 import RNFS from 'react-native-fs'
 import 'react-native-get-random-values'
 import { v4 as uuid } from 'uuid'
-
-export interface SigStickSearchResult {
-  id: string
-  title: string
-  thumbnail: string
-}
-
-export interface SigStickPack {
-  id: string
-  title: string
-  coverUrl: string | null
-  stickers: string[]
-}
-
-export function fullyDecodeURIComponent(str: string): string {
-  let current = str
-
-  while (true) {
-    try {
-      const decoded = decodeURIComponent(current)
-
-      if (decoded === current) {
-        break
-      }
-      current = decoded
-    } catch {
-      break
-    }
-  }
-
-  return current
-}
 
 export async function searchStickerPacks(
   keyword: string
@@ -64,7 +40,7 @@ export async function searchStickerPacks(
 
     const rawId = href.split('/').pop() || ''
 
-    const id = fullyDecodeURIComponent(rawId)
+    const id = deepDecodeURIComponent(rawId)
 
     const img = link.querySelector('img')
 
@@ -187,6 +163,19 @@ export async function downloadSigStickPack(
   } else {
     await generateTrayIcon(`file://${stickerDir}/sticker_001.webp`, identifier)
   }
+
+  const packStickers = []
+
+  for (let i = 0; i < stickerUrls.length; i++) {
+    packStickers.push({
+      imageFileName: `sticker_${String(i + 1).padStart(3, '0')}.webp`
+    })
+  }
+  await ensureAnimationConsistency(identifier, packStickers)
+
+  const packStickersList = await getStickersForPack(identifier)
+  const hasAnim = await hasAnimatedStickers(identifier, packStickersList)
+  await updatePackAnimatedStatus(identifier, hasAnim)
 
   await regenerateContentsJson(identifier)
   await refreshContentProvider()

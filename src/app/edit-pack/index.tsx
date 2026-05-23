@@ -6,9 +6,9 @@ import { useLocalSearchParams } from 'expo-router'
 
 import StickerGrid from '@/components/StickerGrid'
 import { useAlertStore } from '@/components/ui/AlertManager'
-import { deleteSticker, getPackWithStickers } from '@/database/repositories'
+import { deleteSticker, getPackWithStickers, getStickersForPack, updatePackAnimatedStatus } from '@/database/repositories'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
-import { deleteStickerFile } from '@/services/stickerFileManager'
+import { deleteStickerFile, hasAnimatedStickers } from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
 import type { PackWithStickers } from '@/types'
 import { Text, useTheme } from 'react-native-paper'
@@ -40,6 +40,11 @@ export default function EditPackScreen() {
     if (!pack) return
     await deleteStickerFile(pack.identifier, fileName)
     await deleteSticker(stickerId)
+
+    const packStickersList = await getStickersForPack(pack.id)
+    const hasAnim = await hasAnimatedStickers(pack.identifier, packStickersList)
+    await updatePackAnimatedStatus(pack.id, hasAnim)
+
     await regenerateContentsJson(packId)
     await refreshContentProvider()
     await loadPack()

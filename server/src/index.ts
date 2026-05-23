@@ -91,8 +91,13 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
   fs.writeFileSync(outputPath, Buffer.from(buffer))
 }
 
+app.get('/api/health', (req: Request, res: Response): void => {
+  res.json({ status: 'ok' })
+})
+
 app.get('/api/convert', async (req: Request, res: Response): Promise<void> => {
   const url = req.query.url as string
+  const animated = req.query.animated === 'true'
 
   if (!url) {
     res.status(400).json({ error: 'URL is required' })
@@ -107,7 +112,11 @@ app.get('/api/convert', async (req: Request, res: Response): Promise<void> => {
     outputPath = getTempFilePath('.webp')
     await downloadFile(url, inputPath)
 
-    const size = await convertWithCompressionFallback(inputPath, outputPath)
+    const size = await convertWithCompressionFallback(
+      inputPath,
+      outputPath,
+      animated
+    )
 
     const timestamp = new Date()
       .toISOString()
@@ -148,6 +157,7 @@ app.get('/api/convert', async (req: Request, res: Response): Promise<void> => {
 
 app.post('/api/convert', async (req: Request, res: Response): Promise<void> => {
   const fileData = req.body.fileData as string
+  const animated = req.body.animated === true
 
   if (!fileData) {
     res.status(400).json({ error: 'fileData base64 is required' })
@@ -162,7 +172,11 @@ app.post('/api/convert', async (req: Request, res: Response): Promise<void> => {
   try {
     fs.writeFileSync(inputPath, Buffer.from(fileData, 'base64'))
 
-    const size = await convertWithCompressionFallback(inputPath, outputPath)
+    const size = await convertWithCompressionFallback(
+      inputPath,
+      outputPath,
+      animated
+    )
 
     const base64 = fs.readFileSync(outputPath, 'base64')
 

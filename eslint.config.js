@@ -3,10 +3,6 @@ const { defineConfig } = require('eslint/config')
 
 const expoConfig = require('eslint-config-expo/flat')
 
-const prettierPlugin = require('eslint-plugin-prettier')
-
-const prettierConfig = require('eslint-config-prettier')
-
 const unusedImportsPlugin = require('eslint-plugin-unused-imports')
 
 const tsPlugin = require('@typescript-eslint/eslint-plugin')
@@ -39,11 +35,9 @@ module.exports = defineConfig([
   {
     plugins: {
       'unused-imports': unusedImportsPlugin,
-      prettier: prettierPlugin,
       '@typescript-eslint': tsPlugin
     },
     rules: {
-      'prettier/prettier': 'warn',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -93,7 +87,5 @@ module.exports = defineConfig([
     rules: {
       '@typescript-eslint/no-explicit-any': 'off'
     }
-  },
-
-  prettierConfig
+  }
 ])

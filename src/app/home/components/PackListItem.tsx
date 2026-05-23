@@ -13,10 +13,14 @@ import { Menu, Portal, useTheme } from 'react-native-paper'
 export default function PackListItem({
   pack,
   stickerCount,
+  whatsappStatus,
+  isAnimated,
   onDeleted
 }: {
   pack: StickerPack
   stickerCount: number
+  whatsappStatus?: boolean[]
+  isAnimated: boolean
   onDeleted: () => void
 }) {
   const router = useRouter()
@@ -39,8 +43,10 @@ export default function PackListItem({
   return (
     <>
       <PackCard
+        isAnimated={isAnimated}
         pack={pack}
         stickerCount={stickerCount}
+        whatsappStatus={whatsappStatus}
         onMenuPress={(x, y) => {
           setMenuAnchor({ x: x + 20, y: y + 20 })
           setMenuVisible(true)

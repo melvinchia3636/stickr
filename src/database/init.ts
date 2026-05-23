@@ -8,6 +8,7 @@ let drizzleDb: ReturnType<typeof drizzle<typeof schema>> | null = null
 
 function initDatabase(): void {
   if (db) return
+
   db = open({
     name: 'stickercreator.db',
     location: 'default'
@@ -26,12 +27,19 @@ function initDatabase(): void {
       image_data_version TEXT DEFAULT '1',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      sigstick_id TEXT
+      sigstick_id TEXT,
+      is_animated INTEGER NOT NULL DEFAULT 0
     )
   `)
 
   try {
     db.execute('ALTER TABLE sticker_packs ADD COLUMN sigstick_id TEXT')
+  } catch {
+    // Column already exists, ignore error
+  }
+
+  try {
+    db.execute('ALTER TABLE sticker_packs ADD COLUMN is_animated INTEGER NOT NULL DEFAULT 0')
   } catch {
     // Column already exists, ignore error
   }

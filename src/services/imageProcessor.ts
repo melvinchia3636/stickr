@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 
 import { getSetting } from '@/database/repositories'
 import type { ConvertResult } from '@/types'
+import { getWebPMetadata, isStickerWhatsAppCompliant } from '@/utils/image'
 import RNFS from 'react-native-fs'
 
 import { getStickerPath } from './stickerFileManager'
@@ -54,17 +55,54 @@ async function fetchWithTimeout(
   }
 }
 
+export async function isServerHealthy(): Promise<boolean> {
+  const SERVER_URL = await getApiBaseUrl()
+
+  console.log(
+    `[ImageProcessor] isServerHealthy() checking server at: ${SERVER_URL}/api/health`
+  )
+
+  try {
+    const response = await fetchWithTimeout(
+      `${SERVER_URL}/api/health`,
+      { method: 'GET' },
+      3000
+    )
+
+    console.log(
+      `[ImageProcessor] isServerHealthy() response status: ${response.status}`
+    )
+
+    return response.ok
+  } catch (err: any) {
+    console.log(
+      `[ImageProcessor] isServerHealthy() request failed: ${err.message || err}`
+    )
+
+    return false
+  }
+}
+
 export async function convertToStickerWebP(
   sourceUri: string,
   identifier: string,
-  fileName: string
+  fileName: string,
+  forceAnimated?: boolean
 ): Promise<ConvertResult> {
   const SERVER_URL = await getApiBaseUrl()
 
   const outputPath = getStickerPath(identifier, fileName)
 
+  console.log(
+    `[ImageProcessor] convertToStickerWebP() sourceUri=${sourceUri} forceAnimated=${forceAnimated} outputPath=${outputPath}`
+  )
+
   if (sourceUri.startsWith('http://') || sourceUri.startsWith('https://')) {
-    const apiQuery = `${SERVER_URL}/api/convert?url=${encodeURIComponent(sourceUri)}`
+    const apiQuery = `${SERVER_URL}/api/convert?url=${encodeURIComponent(sourceUri)}${forceAnimated ? '&animated=true' : ''}`
+
+    console.log(
+      `[ImageProcessor] convertToStickerWebP() remote URL, query=${apiQuery}`
+    )
 
     const downloadJob = RNFS.downloadFile({
       fromUrl: apiQuery,
@@ -90,6 +128,10 @@ export async function convertToStickerWebP(
         clearTimeout(timerId)
       }
 
+      console.log(
+        `[ImageProcessor] convertToStickerWebP() remote download finished. statusCode=${downloadResult.statusCode}`
+      )
+
       if (downloadResult.statusCode !== 200) {
         return {
           success: false,
@@ -101,16 +143,24 @@ export async function convertToStickerWebP(
 
       const stats = await RNFS.stat(outputPath)
 
+      console.log(
+        `[ImageProcessor] convertToStickerWebP() remote success, size=${stats.size} bytes`
+      )
+
       return {
         success: true,
         width: 512,
         height: 512,
         size: Number(stats.size)
       }
-    } catch {
+    } catch (err: any) {
       if (timerId) {
         clearTimeout(timerId)
       }
+
+      console.log(
+        `[ImageProcessor] convertToStickerWebP() remote error: ${err.message || err}`
+      )
 
       return {
         success: false,
@@ -123,7 +173,15 @@ export async function convertToStickerWebP(
 
   const cleanUri = sourceUri.replace('file://', '')
 
+  console.log(
+    `[ImageProcessor] convertToStickerWebP() local file, reading base64 cleanUri=${cleanUri}`
+  )
+
   const base64Data = await RNFS.readFile(cleanUri, 'base64')
+
+  console.log(
+    `[ImageProcessor] convertToStickerWebP() read base64: ${base64Data.length} chars. Posting to server...`
+  )
 
   try {
     const response = await fetchWithTimeout(
@@ -133,9 +191,13 @@ export async function convertToStickerWebP(
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ fileData: base64Data })
+        body: JSON.stringify({ fileData: base64Data, animated: forceAnimated })
       },
       30000
+    )
+
+    console.log(
+      `[ImageProcessor] convertToStickerWebP() post conversion response: ok=${response.ok} status=${response.status}`
     )
 
     if (!response.ok) {
@@ -149,8 +211,16 @@ export async function convertToStickerWebP(
 
     const result = await response.json()
 
+    console.log(
+      `[ImageProcessor] convertToStickerWebP() server returned success=${result.success}`
+    )
+
     if (result.success && result.base64) {
       await RNFS.writeFile(outputPath, result.base64, 'base64')
+
+      console.log(
+        `[ImageProcessor] convertToStickerWebP() base64 written, size=${result.size} bytes`
+      )
 
       return {
         success: true,
@@ -159,8 +229,10 @@ export async function convertToStickerWebP(
         size: result.size || 0
       }
     }
-  } catch {
-    // Timeout or network error
+  } catch (err: any) {
+    console.log(
+      `[ImageProcessor] convertToStickerWebP() local error: ${err.message || err}`
+    )
   }
 
   return {
@@ -179,8 +251,16 @@ export async function generateTrayIcon(
 
   const outputPath = getStickerPath(identifier, TRAY_FILE_NAME)
 
+  console.log(
+    `[ImageProcessor] generateTrayIcon() sourceUri=${sourceUri} outputPath=${outputPath}`
+  )
+
   if (sourceUri.startsWith('http://') || sourceUri.startsWith('https://')) {
     const apiQuery = `${SERVER_URL}/api/tray?url=${encodeURIComponent(sourceUri)}`
+
+    console.log(
+      `[ImageProcessor] generateTrayIcon() remote URL, query=${apiQuery}`
+    )
 
     const downloadJob = RNFS.downloadFile({
       fromUrl: apiQuery,
@@ -206,6 +286,10 @@ export async function generateTrayIcon(
         clearTimeout(timerId)
       }
 
+      console.log(
+        `[ImageProcessor] generateTrayIcon() remote finished, statusCode=${downloadResult.statusCode}`
+      )
+
       if (downloadResult.statusCode !== 200) {
         return {
           success: false,
@@ -217,16 +301,24 @@ export async function generateTrayIcon(
 
       const stats = await RNFS.stat(outputPath)
 
+      console.log(
+        `[ImageProcessor] generateTrayIcon() remote success, size=${stats.size} bytes`
+      )
+
       return {
         success: true,
         width: 96,
         height: 96,
         size: Number(stats.size)
       }
-    } catch {
+    } catch (err: any) {
       if (timerId) {
         clearTimeout(timerId)
       }
+
+      console.log(
+        `[ImageProcessor] generateTrayIcon() remote error: ${err.message || err}`
+      )
 
       return {
         success: false,
@@ -238,6 +330,10 @@ export async function generateTrayIcon(
   }
 
   const cleanUri = sourceUri.replace('file://', '')
+
+  console.log(
+    `[ImageProcessor] generateTrayIcon() local file, reading base64 cleanUri=${cleanUri}`
+  )
 
   const base64Data = await RNFS.readFile(cleanUri, 'base64')
 
@@ -254,6 +350,10 @@ export async function generateTrayIcon(
       30000
     )
 
+    console.log(
+      `[ImageProcessor] generateTrayIcon() post tray response: ok=${response.ok} status=${response.status}`
+    )
+
     if (!response.ok) {
       return {
         success: false,
@@ -265,10 +365,18 @@ export async function generateTrayIcon(
 
     const result = await response.json()
 
+    console.log(
+      `[ImageProcessor] generateTrayIcon() server returned success=${result.success}`
+    )
+
     if (result.success && result.base64) {
       await RNFS.writeFile(outputPath, result.base64, 'base64')
 
       const stats = await RNFS.stat(outputPath)
+
+      console.log(
+        `[ImageProcessor] generateTrayIcon() success, size=${stats.size} bytes`
+      )
 
       return {
         success: true,
@@ -277,8 +385,10 @@ export async function generateTrayIcon(
         size: Number(stats.size)
       }
     }
-  } catch {
-    // Timeout or network error
+  } catch (err: any) {
+    console.log(
+      `[ImageProcessor] generateTrayIcon() local error: ${err.message || err}`
+    )
   }
 
   return {
@@ -286,6 +396,66 @@ export async function generateTrayIcon(
     width: 0,
     height: 0,
     size: 0
+  }
+}
+
+export async function ensureAnimationConsistency(
+  identifier: string,
+  stickers: { imageFileName: string }[]
+): Promise<void> {
+  let hasAnimated = false
+
+  console.log(
+    `[ImageProcessor] ensureAnimationConsistency() starting check for identifier=${identifier} stickers=${stickers.length}`
+  )
+
+  for (const s of stickers) {
+    const path = getStickerPath(identifier, s.imageFileName)
+
+    const exists = await RNFS.exists(path)
+
+    if (exists) {
+      const meta = await getWebPMetadata(path)
+
+      console.log(
+        `[ImageProcessor]   sticker: ${s.imageFileName} exists=true isAnim=${meta.isAnimated} loopCount=${meta.loopCount} frameCount=${meta.frameCount} hasAnimChunk=${meta.hasAnimChunk} hasNonZeroOffsets=${meta.hasNonZeroOffsets} hasNon512Frame=${meta.hasNon512Frame} dimensions=${meta.width}x${meta.height} size=${(meta.fileSize / 1024).toFixed(2)}KB`
+      )
+
+      if (meta.isAnimated) {
+        hasAnimated = true
+      }
+    } else {
+      console.log(`[ImageProcessor]   sticker: ${s.imageFileName} exists=false`)
+    }
+  }
+
+  console.log(
+    `[ImageProcessor] ensureAnimationConsistency() finished check. hasAnimated=${hasAnimated}`
+  )
+
+  for (const s of stickers) {
+    const path = getStickerPath(identifier, s.imageFileName)
+
+    const exists = await RNFS.exists(path)
+
+    if (exists) {
+      const compliant = await isStickerWhatsAppCompliant(path, hasAnimated)
+
+      if (!compliant) {
+        const tempUri = `file://${path}`
+
+        console.log(
+          `[ImageProcessor]   converting non-compliant sticker to ${hasAnimated ? 'animated' : 'static'} WebP: ${s.imageFileName}`
+        )
+
+        await convertToStickerWebP(
+          tempUri,
+          identifier,
+          s.imageFileName,
+          hasAnimated
+        )
+      }
+    }
   }
 }
 

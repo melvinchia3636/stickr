@@ -98,6 +98,41 @@ describe('Converter Module Tests', () => {
     }
   })
 
+  test('convertToWebPServerFlow with forceAnimated should duplicate frames and produce a file', async () => {
+    const input = path.join(os.tmpdir(), 'input_anim.mp4')
+
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'sticker-convert-anim-test-')
+    )
+
+    const output = path.join(os.tmpdir(), 'output_anim.webp')
+
+    fs.writeFileSync(input, 'dummy data')
+
+    try {
+      await convertToWebPServerFlow(input, tempDir, output, 70, 15, true)
+      expect(fs.existsSync(output)).toBe(true)
+
+      const stats = fs.statSync(output)
+
+      expect(stats.size).toBe(1024)
+    } finally {
+      if (fs.existsSync(input)) fs.unlinkSync(input)
+      if (fs.existsSync(output)) fs.unlinkSync(output)
+
+      try {
+        if (fs.existsSync(tempDir)) {
+          const files = fs.readdirSync(tempDir)
+
+          for (const file of files) {
+            fs.unlinkSync(path.join(tempDir, file))
+          }
+          fs.rmdirSync(tempDir)
+        }
+      } catch {}
+    }
+  })
+
   test('convertWithCompressionFallback should perform scaling and return file size', async () => {
     const input = path.join(os.tmpdir(), 'input2.mp4')
 

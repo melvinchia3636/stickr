@@ -1,0 +1,129 @@
+{
+  "android_play_store_link": "",
+  "ios_app_store_link": "",
+  "sticker_packs": [
+    {
+      "identifier": "86f63bdc-754a-457f-bbfc-a8722a5c03c5",
+      "name": "薩卡班甲魚 (sacabambaspis) @kal_pc",
+      "publisher": "Sticker Creator",
+      "tray_image_file": "tray_icon.png",
+      "image_data_version": "1",
+      "avoid_cache": false,
+      "animated_sticker_pack": true,
+      "stickers": [
+        {
+          "image_file": "sticker_001.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_002.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_003.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_004.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_005.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_006.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_007.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_008.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_009.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_010.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_011.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_012.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_013.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_014.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_015.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        },
+        {
+          "image_file": "sticker_016.webp",
+          "emojis": [
+            "😀"
+          ],
+          "accessibility_text": ""
+        }
+      ]
+    }
+  ]
+}

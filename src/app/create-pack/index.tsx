@@ -22,7 +22,7 @@ export default function CreatePackScreen() {
         <TextInput
           label="Pack Name"
           maxLength={50}
-          mode="flat"
+          mode="outlined"
           placeholder="My Awesome Stickers"
           value={packName}
           onChangeText={setPackName}

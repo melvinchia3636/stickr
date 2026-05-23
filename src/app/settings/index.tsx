@@ -1,14 +1,17 @@
+/* eslint-disable padding-line-between-statements */
 import React, { useEffect, useState } from 'react'
 
-import { ScrollView } from 'react-native'
+import { ScrollView, View } from 'react-native'
 
 import { useRouter } from 'expo-router'
 
 import { useAlertStore } from '@/components/ui/AlertManager'
 import { getSetting, setSetting } from '@/database/repositories'
+import { useThemeMode } from '@/themes/ThemeProvider'
 import {
   Button,
   HelperText,
+  SegmentedButtons,
   Text,
   TextInput,
   useTheme
@@ -21,14 +24,14 @@ export default function SettingsScreen() {
 
   const { openAlert } = useAlertStore()
 
+  const { mode: themeMode, setMode } = useThemeMode()
+
   const [hostUrl, setHostUrl] = useState('')
 
   const [error, setError] = useState('')
 
   useEffect(() => {
-    ;
-
-(async () => {
+    ;(async () => {
       const savedUrl = await getSetting('server_host_url', '')
 
       setHostUrl(savedUrl)
@@ -84,6 +87,41 @@ export default function SettingsScreen() {
       contentContainerStyle={{ padding: 16 }}
       style={{ flex: 1, backgroundColor: t.colors.background }}
     >
+      <Text
+        style={{ color: t.colors.onBackground, marginBottom: 8, fontSize: 18 }}
+        variant="titleMedium"
+      >
+        Theme
+      </Text>
+      <Text
+        style={{ color: t.colors.onSurface, marginBottom: 12 }}
+        variant="bodyMedium"
+      >
+        Choose your preferred appearance.
+      </Text>
+
+      <SegmentedButtons
+        buttons={[
+          { value: 'system', label: 'System' },
+          { value: 'light', label: 'Light' },
+          { value: 'dark', label: 'Dark' }
+        ]}
+        style={{ marginBottom: 32 }}
+        value={themeMode}
+        onValueChange={value => {
+          setMode(value as 'system' | 'light' | 'dark')
+          setSetting('theme_mode', value)
+        }}
+      />
+
+      <View
+        style={{
+          height: 1,
+          backgroundColor: t.colors.outlineVariant,
+          marginBottom: 24
+        }}
+      />
+
       <Text
         style={{ color: t.colors.onBackground, marginBottom: 8, fontSize: 18 }}
         variant="titleMedium"

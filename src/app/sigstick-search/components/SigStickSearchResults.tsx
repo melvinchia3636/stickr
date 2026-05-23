@@ -23,6 +23,15 @@ export default function SigStickSearchResults({
     return <LoadingScreen message="Searching..." />
   }
 
+  if (!searched) {
+    return (
+      <EmptyState
+        message="Search SigStick"
+        subtitle="Enter a query above to search and download high-quality sticker packs"
+      />
+    )
+  }
+
   if (searched && results.length === 0) {
     return <EmptyState message="No packs found" />
   }

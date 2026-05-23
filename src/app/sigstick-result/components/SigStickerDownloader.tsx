@@ -1,12 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import { View } from 'react-native'
 
 import { useAlertStore } from '@/components/ui/AlertManager'
 import ProgressBar from '@/components/ui/ProgressBar'
 import { getPackWithStickers } from '@/database/repositories'
-import { addPackToWhatsApp } from '@/services/packSplitter'
+import { useEnsureServerHealthy } from '@/hooks/useEnsureServerHealthy'
+import { useWhatsAppImport } from '@/hooks/useWhatsAppImport'
 import { downloadSigStickPack } from '@/services/sigstickApi'
+import type { PackWithStickers } from '@/types'
 import { Button, useTheme } from 'react-native-paper'
 
 export default function SigStickerDownloader({
@@ -30,7 +32,30 @@ export default function SigStickerDownloader({
 
   const [downloadProgress, setDownloadProgress] = useState(0)
 
+  const [localPack, setLocalPack] = useState<PackWithStickers | null>(null)
+
+  const ensureServerHealthy = useEnsureServerHealthy()
+
+  const { handleAddToWhatsApp } = useWhatsAppImport(localPack)
+
+  useEffect(() => {
+    if (localPack) {
+      handleAddToWhatsApp()
+      onDownloaded?.()
+    }
+  }, [localPack, handleAddToWhatsApp, onDownloaded])
+
   async function handleDownload() {
+    setDownloading(true)
+
+    const healthy = await ensureServerHealthy()
+
+    if (!healthy) {
+      setDownloading(false)
+
+      return
+    }
+
     setDownloading(true)
     setDownloadProgress(0)
 
@@ -44,28 +69,19 @@ export default function SigStickerDownloader({
       )
 
       setDownloading(false)
-      onDownloaded?.()
 
-      const localPack = await getPackWithStickers(identifier)
+      const pack = await getPackWithStickers(identifier)
 
-      if (!localPack) return
-
-      try {
-        await addPackToWhatsApp(localPack)
-      } catch (addError: any) {
-        openAlert({
-          title: 'Error',
-          message: addError.message || 'Failed to add to WhatsApp',
-          icon: 'alert',
-          iconColor: t.colors.error,
-          actions: [{ text: 'OK' }]
-        })
+      if (pack) {
+        setLocalPack(pack)
+      } else {
+        onDownloaded?.()
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setDownloading(false)
       openAlert({
         title: 'Error',
-        message: e.message || 'Failed to download pack',
+        message: e instanceof Error ? e.message : 'Failed to download pack',
         icon: 'alert',
         iconColor: t.colors.error,
         actions: [{ text: 'OK' }]

@@ -1,3 +1,4 @@
+/* eslint-disable padding-line-between-statements */
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { ScrollView } from 'react-native'
@@ -26,12 +27,8 @@ export default function PackDetailScreen() {
   const [pack, setPack] = useState<PackWithStickers | null>(null)
 
   useEffect(() => {
-    ;
-
-(async () => {
-      const p = await getPackWithStickers(packId)
-
-      setPack(p)
+    ;(async () => {
+      setPack(await getPackWithStickers(packId))
     })()
   }, [])
 
@@ -55,7 +52,11 @@ export default function PackDetailScreen() {
         style={{ flex: 1, backgroundColor: t.colors.background }}
       >
         <StickerPackHeader
-          imageUri={`file://${getStickerPath(pack.identifier, pack.stickers[0].imageFileName)}`}
+          imageUri={
+            pack.trayImageFile
+              ? `file://${getStickerPath(pack.identifier, pack.trayImageFile)}`
+              : `file://${getStickerPath(pack.identifier, pack.stickers[0].imageFileName)}`
+          }
           name={pack.name}
           stickerCount={pack.stickers.length}
         />

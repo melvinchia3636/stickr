@@ -77,7 +77,8 @@ export async function convertToWebPServerFlow(
   tempDir: string,
   outputPath: string,
   quality: number,
-  fps: number
+  fps: number,
+  forceAnimated?: boolean
 ): Promise<void> {
   if (isWebPFile(inputPath)) {
     const info = await getWebPInfo(inputPath)
@@ -99,7 +100,7 @@ export async function convertToWebPServerFlow(
         )
         await execAsync(`dwebp "${frameWebp}" -o "${framePng}"`)
 
-        const filter = `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:-1:-1:color=0x00000000`
+        const filter = `scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:-1:-1:color=0x00000000`
 
         await execAsync(
           `ffmpeg -y -i "${framePng}" -vf "${filter}" "${scaledPng}"`
@@ -107,17 +108,27 @@ export async function convertToWebPServerFlow(
         scaledPngs.push(scaledPng)
       }
 
+      const frameWebps: string[] = []
+
+      for (let i = 0; i < info.frameCount; i++) {
+        const frameIdx = String(i + 1).padStart(3, '0')
+        const frameWebp = path.join(tempDir, `scaled_frame_${frameIdx}.webp`)
+        await execAsync(
+          `cwebp -exact -q ${quality} "${scaledPngs[i]}" -o "${frameWebp}"`
+        )
+        frameWebps.push(frameWebp)
+      }
+
       const frameArgs: string[] = []
 
       for (let i = 0; i < info.frameCount; i++) {
         const duration = info.durations[i] || Math.round(1000 / fps)
-
-        frameArgs.push(`-d ${duration} "${scaledPngs[i]}"`)
+        frameArgs.push(`-frame "${frameWebps[i]}" +${duration}+0+0+1-b`)
       }
 
-      const img2webpCommand = `img2webp -loop 0 -lossy -q ${quality} ${frameArgs.join(' ')} -o "${outputPath}"`
-
-      await execAsync(img2webpCommand)
+      const tempOutput = path.join(tempDir, 'temp_output.webp')
+      await execAsync(`webpmux ${frameArgs.join(' ')} -o "${tempOutput}"`)
+      await execAsync(`webpmux -set loop 0 "${tempOutput}" -o "${outputPath}"`)
 
       return
     } else {
@@ -127,18 +138,36 @@ export async function convertToWebPServerFlow(
 
       await execAsync(`dwebp "${inputPath}" -o "${framePng}"`)
 
-      const filter = `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:-1:-1:color=0x00000000`
+      const filter = `scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:-1:-1:color=0x00000000`
 
       await execAsync(
         `ffmpeg -y -i "${framePng}" -vf "${filter}" "${scaledPng}"`
       )
-      await execAsync(`cwebp -q ${quality} "${scaledPng}" -o "${outputPath}"`)
+
+      if (forceAnimated) {
+        const tempWebp = path.join(tempDir, 'temp_force_anim.webp')
+        const tempOutput = path.join(tempDir, 'temp_output.webp')
+
+        await execAsync(
+          `cwebp -exact -q ${quality} "${scaledPng}" -o "${tempWebp}"`
+        )
+        await execAsync(
+          `webpmux -frame "${tempWebp}" +500+0+0+1-b -frame "${tempWebp}" +500+0+0+1-b -o "${tempOutput}"`
+        )
+        await execAsync(
+          `webpmux -set loop 0 "${tempOutput}" -o "${outputPath}"`
+        )
+      } else {
+        await execAsync(
+          `cwebp -exact -q ${quality} "${scaledPng}" -o "${outputPath}"`
+        )
+      }
 
       return
     }
   }
 
-  const filter = `fps=${fps},scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:-1:-1:color=0x00000000`
+  const filter = `fps=${fps},scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:-1:-1:color=0x00000000`
 
   const ffmpegCommand = `ffmpeg -y -i "${inputPath}" -vf "${filter}" "${path.join(tempDir, 'frame_%03d.png')}"`
 
@@ -153,24 +182,64 @@ export async function convertToWebPServerFlow(
     throw new Error('No PNG frames were extracted from the input source')
   }
 
-  const frameArgs = pngFiles
-    .map(file => `"${path.join(tempDir, file)}"`)
-    .join(' ')
+  if (pngFiles.length === 1) {
+    const rawFramePath = path.join(tempDir, pngFiles[0])
 
-  const duration = Math.round(1000 / fps)
+    const framePath = `"${rawFramePath}"`
 
-  const img2webpCommand = `img2webp -loop 0 -lossy -q ${quality} -d ${duration} ${frameArgs} -o "${outputPath}"`
+    if (forceAnimated) {
+      const tempWebp = path.join(tempDir, 'temp_force_anim.webp')
+      const tempOutput = path.join(tempDir, 'temp_output.webp')
 
-  await execAsync(img2webpCommand)
+      await execAsync(
+        `cwebp -exact -q ${quality} "${rawFramePath}" -o "${tempWebp}"`
+      )
+      await execAsync(
+        `webpmux -frame "${tempWebp}" +500+0+0+1-b -frame "${tempWebp}" +500+0+0+1-b -o "${tempOutput}"`
+      )
+      await execAsync(
+        `webpmux -set loop 0 "${tempOutput}" -o "${outputPath}"`
+      )
+    } else {
+      await execAsync(
+        `cwebp -exact -q ${quality} ${framePath} -o "${outputPath}"`
+      )
+    }
+  } else {
+    const frameWebps: string[] = []
+
+    for (let i = 0; i < pngFiles.length; i++) {
+      const frameIdx = String(i + 1).padStart(3, '0')
+      const frameWebp = path.join(tempDir, `scaled_frame_${frameIdx}.webp`)
+      await execAsync(
+        `cwebp -exact -q ${quality} "${path.join(tempDir, pngFiles[i])}" -o "${frameWebp}"`
+      )
+      frameWebps.push(frameWebp)
+    }
+
+    const duration = Math.round(1000 / fps)
+    const frameArgs: string[] = []
+
+    for (let i = 0; i < frameWebps.length; i++) {
+      frameArgs.push(`-frame "${frameWebps[i]}" +${duration}+0+0+1-b`)
+    }
+
+    const tempOutput = path.join(tempDir, 'temp_output.webp')
+    await execAsync(`webpmux ${frameArgs.join(' ')} -o "${tempOutput}"`)
+    await execAsync(`webpmux -set loop 0 "${tempOutput}" -o "${outputPath}"`)
+  }
 }
 
 export async function convertWithCompressionFallback(
   inputPath: string,
-  outputPath: string
+  outputPath: string,
+  forceAnimated?: boolean
 ): Promise<number> {
   let isStatic = false
 
-  if (isWebPFile(inputPath)) {
+  if (forceAnimated) {
+    isStatic = false
+  } else if (isWebPFile(inputPath)) {
     const info = await getWebPInfo(inputPath)
 
     isStatic = !info.isAnimated || info.frameCount <= 1
@@ -181,7 +250,7 @@ export async function convertWithCompressionFallback(
 
     try {
       const filter =
-        'fps=15,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:-1:-1:color=0x00000000'
+        'fps=15,scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:-1:-1:color=0x00000000'
 
       const ffmpegCommand = `ffmpeg -y -i "${inputPath}" -vf "${filter}" "${path.join(checkTempDir, 'frame_%03d.png')}"`
 
@@ -221,7 +290,7 @@ export async function convertWithCompressionFallback(
 
     try {
       const filter =
-        'scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:-1:-1:color=0x00000000'
+        'scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:-1:-1:color=0x00000000'
 
       const framePath = path.join(tempDir, 'frame.png')
 
@@ -242,7 +311,7 @@ export async function convertWithCompressionFallback(
       for (let i = 0; i < staticSteps.length; i++) {
         const q = staticSteps[i]
 
-        const cmd = `cwebp -q ${q} "${framePath}" -o "${outputPath}"`
+        const cmd = `cwebp -exact -q ${q} "${framePath}" -o "${outputPath}"`
 
         await execAsync(cmd)
 
@@ -275,7 +344,7 @@ export async function convertWithCompressionFallback(
       { q: 30, fps: 5 }
     ]
 
-    const MAX_ANIMATED_SIZE = 500 * 1024
+    const MAX_ANIMATED_SIZE = 450 * 1024
 
     for (let i = 0; i < steps.length; i++) {
       const { q, fps } = steps[i]
@@ -283,7 +352,14 @@ export async function convertWithCompressionFallback(
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sticker-convert-'))
 
       try {
-        await convertToWebPServerFlow(inputPath, tempDir, outputPath, q, fps)
+        await convertToWebPServerFlow(
+          inputPath,
+          tempDir,
+          outputPath,
+          q,
+          fps,
+          forceAnimated
+        )
 
         const stats = fs.statSync(outputPath)
 
@@ -307,7 +383,14 @@ export async function convertWithCompressionFallback(
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sticker-convert-'))
 
     try {
-      await convertToWebPServerFlow(inputPath, tempDir, outputPath, 20, 5)
+      await convertToWebPServerFlow(
+        inputPath,
+        tempDir,
+        outputPath,
+        20,
+        5,
+        forceAnimated
+      )
 
       const stats = fs.statSync(outputPath)
 
@@ -331,7 +414,7 @@ export async function generateTrayIconServer(
   inputPath: string,
   outputPath: string
 ): Promise<number> {
-  const filter = `scale=96:96:force_original_aspect_ratio=decrease,pad=96:96:-1:-1:color=0x00000000`
+  const filter = `scale=96:96:force_original_aspect_ratio=decrease,format=rgba,pad=96:96:-1:-1:color=0x00000000`
 
   if (isWebPFile(inputPath)) {
     const tempDir = fs.mkdtempSync(

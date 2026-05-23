@@ -1,242 +1,30 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React from 'react'
 
-import { Alert, AppState, type AppStateStatus, View } from 'react-native'
+import { View } from 'react-native'
 
-import { useAlertStore } from '@/components/ui/AlertManager'
-import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
-import type { SubPack } from '@/services/packSplitter'
-import {
-  addPackToWhatsApp,
-  addSubPackToWhatsApp,
-  getPartCount,
-  needsSplitting,
-  prepareSubPacks
-} from '@/services/packSplitter'
-import {
-  isStickerPackWhitelisted,
-  refreshContentProvider,
-  validateStickerPack
-} from '@/services/whatsappBridge'
+import WhatsAppAlreadyAddedStatus from '@/components/WhatsAppAlreadyAddedStatus'
+import WhatsAppNotAddedStatus from '@/components/WhatsAppNotAddedStatus'
+import WhatsAppPartialAddedStatus from '@/components/WhatsAppPartialAddedStatus'
+import { useWhatsAppImport } from '@/hooks/useWhatsAppImport'
 import type { PackWithStickers } from '@/types'
-import { Button, Icon, Text, useTheme } from 'react-native-paper'
 
 export default function WhatsAppSection({ pack }: { pack: PackWithStickers }) {
-  const t = useTheme()
-
-  const { openAlert } = useAlertStore()
-
-  const [adding, setAdding] = useState(false)
-
-  const [whitelisted, setWhitelisted] = useState(false)
-
-  const [whitelistedParts, setWhitelistedParts] = useState<boolean[]>([])
-
-  const pendingSubPacksRef = useRef<SubPack[]>([])
-
-  useEffect(() => {
-    checkStatus()
-
-    const subscription = AppState.addEventListener(
-      'change',
-      (nextAppState: AppStateStatus) => {
-        if (nextAppState === 'active') {
-          checkStatus()
-        }
-      }
-    )
-
-    return () => {
-      subscription.remove()
-    }
-  }, [])
-
-  const checkStatus = async () => {
-    if (needsSplitting(pack.stickers.length)) {
-      const partCount = getPartCount(pack.stickers.length)
-
-      const results: boolean[] = []
-
-      for (let i = 0; i < partCount; i++) {
-        results.push(
-          await isStickerPackWhitelisted(`${pack.identifier}_part${i + 1}`)
-        )
-      }
-      setWhitelistedParts(results)
-      setWhitelisted(results.every(Boolean))
-    } else {
-      const wl = await isStickerPackWhitelisted(pack.identifier)
-
-      setWhitelisted(wl)
-      setWhitelistedParts(wl ? [true] : [false])
-    }
-  }
-
-  const handleAddToWhatsApp = async () => {
-    if (needsSplitting(pack.stickers.length)) {
-      const firstUnaddedIndex = whitelistedParts.findIndex(x => !x)
-
-      if (firstUnaddedIndex !== -1 && whitelistedParts.some(Boolean)) {
-        setAdding(true)
-
-        try {
-          const subPacks = await prepareSubPacks(pack)
-
-          const targetSubPack = subPacks[firstUnaddedIndex]
-
-          if (targetSubPack) {
-            await addSubPackToWhatsApp(targetSubPack)
-            setTimeout(checkStatus, 1000)
-          }
-        } catch (e: unknown) {
-          Alert.alert('Error', e instanceof Error ? e.message : 'Failed')
-        }
-        setAdding(false)
-
-        return
-      }
-
-      openAlert({
-        title: 'Large Sticker Pack',
-        message: `This pack has ${pack.stickers.length} stickers. WhatsApp allows max 30 per pack, so it will be split into multiple packs.`,
-        icon: 'information',
-        actions: [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Continue',
-            onPress: () => {
-              doSplitAdd()
-            }
-          }
-        ]
-      })
-    } else {
-      await doDirectAdd()
-    }
-  }
-
-  const doDirectAdd = async () => {
-    setAdding(true)
-
-    try {
-      await regenerateContentsJson(pack.id)
-      await refreshContentProvider()
-
-      const validation = await validateStickerPack(pack.identifier)
-
-      if (!validation.valid) {
-        Alert.alert(
-          'Sticker Pack Validation Failed',
-          validation.errors.join('\n'),
-          [{ text: 'OK' }]
-        )
-        setAdding(false)
-
-        return
-      }
-      await addPackToWhatsApp(pack)
-      setTimeout(checkStatus, 1000)
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : ''
-
-      Alert.alert(
-        'Error',
-        msg.includes('not installed') ? 'Please install WhatsApp.' : msg
-      )
-    }
-    setAdding(false)
-  }
-
-  const doSplitAdd = async () => {
-    setAdding(true)
-
-    try {
-      await regenerateContentsJson(pack.id)
-      await refreshContentProvider()
-
-      const subPacks = await prepareSubPacks(pack)
-
-      pendingSubPacksRef.current = subPacks.slice(1)
-      await addSubPackToWhatsApp(subPacks[0])
-      setTimeout(checkStatus, 1000)
-    } catch (e: unknown) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Failed')
-      pendingSubPacksRef.current = []
-      setAdding(false)
-    }
-  }
+  const { adding, whitelisted, whitelistedParts, handleAddToWhatsApp } =
+    useWhatsAppImport(pack)
 
   return (
     <View style={{ paddingBottom: 16, paddingHorizontal: 16 }}>
       {whitelisted ? (
-        <View
-          style={{
-            backgroundColor: t.colors.elevation.level1,
-            paddingVertical: 16,
-            borderRadius: 12,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <Icon color={t.colors.primary} size={18} source="check-circle" />
-          <Text
-            style={{ color: t.colors.primary, marginLeft: 4 }}
-            variant="titleSmall"
-          >
-            {' '}
-            Already Added to WhatsApp
-            {whitelistedParts.length > 1
-              ? ` (${whitelistedParts.length} parts)`
-              : ''}
-          </Text>
-        </View>
+        <WhatsAppAlreadyAddedStatus partsCount={whitelistedParts.length} />
       ) : whitelistedParts.some(Boolean) ? (
-        <View style={{ gap: 8 }}>
-          <View
-            style={{
-              backgroundColor: t.colors.elevation.level1,
-              paddingVertical: 12,
-              borderRadius: 32,
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}
-          >
-            <Icon
-              color={t.colors.secondary}
-              size={18}
-              source="check-circle-outline"
-            />
-            <Text
-              style={{ color: t.colors.secondary, marginLeft: 4 }}
-              variant="titleSmall"
-            >
-              {' '}
-              {whitelistedParts.filter(Boolean).length} of{' '}
-              {whitelistedParts.length} parts added
-            </Text>
-          </View>
-          <Button
-            buttonColor={adding ? t.colors.surfaceDisabled : t.colors.primary}
-            contentStyle={{ paddingVertical: 8 }}
-            disabled={adding}
-            icon="whatsapp"
-            mode="contained"
-            onPress={handleAddToWhatsApp}
-          >
-            {adding ? 'Opening WhatsApp...' : 'Add Remaining Parts'}
-          </Button>
-        </View>
-      ) : (
-        <Button
-          buttonColor={adding ? t.colors.surfaceDisabled : t.colors.primary}
-          disabled={adding}
-          icon="whatsapp"
-          mode="contained"
+        <WhatsAppPartialAddedStatus
+          addedCount={whitelistedParts.filter(Boolean).length}
+          adding={adding}
+          totalCount={whitelistedParts.length}
           onPress={handleAddToWhatsApp}
-        >
-          {adding ? 'Opening WhatsApp...' : 'Add to WhatsApp'}
-        </Button>
+        />
+      ) : (
+        <WhatsAppNotAddedStatus adding={adding} onPress={handleAddToWhatsApp} />
       )}
     </View>
   )

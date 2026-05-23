@@ -54,6 +54,9 @@ export default function SearchBar({
         placeholder="Search sticker packs..."
         returnKeyType="search"
         style={{ backgroundColor: t.colors.surface }}
+        theme={{
+          roundness: 99
+        }}
         value={query}
         onChangeText={setQuery}
         onSubmitEditing={handleSearch}

@@ -51,7 +51,7 @@ export default function PackNameEditor({
       <TextInput
         label="Pack Name"
         maxLength={50}
-        mode="flat"
+        mode="outlined"
         style={{ flex: 1 }}
         value={newName}
         onChangeText={setNewName}

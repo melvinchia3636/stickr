@@ -1,7 +1,11 @@
 import type { PackWithStickers, Sticker } from '@/types'
 import RNFS from 'react-native-fs'
 
-import { TRAY_FILE_NAME, generateTrayIcon } from './imageProcessor'
+import {
+  TRAY_FILE_NAME,
+  ensureAnimationConsistency,
+  generateTrayIcon
+} from './imageProcessor'
 import {
   ensurePackDir,
   getPackDir,
@@ -13,21 +17,21 @@ import {
   refreshContentProvider
 } from './whatsappBridge'
 
-const MAX_STICKERS_PER_PACK = 30
-
 export interface SubPack {
   identifier: string
   label: string
 }
 
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const chunks: T[][] = []
+export let pendingSubPacksGlobal: SubPack[] = []
 
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size))
-  }
+export let lastAttemptedIndexGlobal: number = -1
 
-  return chunks
+export function setPendingSubPacksGlobal(subPacks: SubPack[]): void {
+  pendingSubPacksGlobal = subPacks
+}
+
+export function setLastAttemptedIndexGlobal(index: number): void {
+  lastAttemptedIndexGlobal = index
 }
 
 function getSubPackIdentifier(
@@ -58,6 +62,8 @@ async function createSubPack(
 
   if (trayExists) {
     await RNFS.copyFile(traySource, trayDest)
+
+    await RNFS.stat(trayDest)
   } else {
     const firstStickerSrc = getStickerPath(
       pack.identifier,
@@ -88,12 +94,18 @@ async function createSubPack(
     }))
   )
 
+  const subDir = getPackDir(subId)
+
+  await RNFS.readDir(subDir)
+
   return { identifier: subId, label: partLabel }
 }
 
 export async function prepareSubPacks(
   pack: PackWithStickers
 ): Promise<SubPack[]> {
+  await ensureAnimationConsistency(pack.identifier, pack.stickers)
+
   const stickersBaseDir = `${RNFS.DocumentDirectoryPath}/stickers`
 
   const allDirs = await RNFS.readDir(stickersBaseDir)
@@ -128,7 +140,18 @@ export async function prepareSubPacks(
     }
   }
 
-  const chunks = chunkArray(pack.stickers, MAX_STICKERS_PER_PACK)
+  const chunks = pack.stickers.reduce<PackWithStickers['stickers'][]>(
+    (chunks, item, index) => {
+      if (index % 30 === 0) {
+        chunks.push([item])
+      } else {
+        chunks[chunks.length - 1].push(item)
+      }
+
+      return chunks
+    },
+    []
+  )
 
   const subPacks: SubPack[] = []
 
@@ -156,7 +179,7 @@ export async function addSubPackToWhatsApp(subPack: SubPack): Promise<void> {
 }
 
 export async function addPackToWhatsApp(pack: PackWithStickers): Promise<void> {
-  if (pack.stickers.length <= MAX_STICKERS_PER_PACK) {
+  if (pack.stickers.length <= 30) {
     await addStickerPackToWhatsApp(pack.identifier, pack.name)
 
     return
@@ -164,13 +187,8 @@ export async function addPackToWhatsApp(pack: PackWithStickers): Promise<void> {
 
   const subPacks = await prepareSubPacks(pack)
 
+  pendingSubPacksGlobal = subPacks.slice(1)
+  lastAttemptedIndexGlobal = 0
+
   await addSubPackToWhatsApp(subPacks[0])
-}
-
-export function needsSplitting(stickerCount: number): boolean {
-  return stickerCount > MAX_STICKERS_PER_PACK
-}
-
-export function getPartCount(stickerCount: number): number {
-  return Math.ceil(stickerCount / MAX_STICKERS_PER_PACK)
 }

@@ -1,20 +1,19 @@
-import React from 'react'
-
-import { StatusBar, useColorScheme } from 'react-native'
+/* eslint-disable padding-line-between-statements */
+import React, { useEffect, useState } from 'react'
 
 import { Stack } from 'expo-router'
 
 import StickrHeader from '@/components/StickrHeader'
 import { AlertProvider } from '@/components/ui/AlertManager'
-import { darkTheme } from '@/themes/dark'
-import { lightTheme } from '@/themes/light'
+import { getSetting } from '@/database/repositories'
+import ThemeProvider, { ThemeMode } from '@/themes/ThemeProvider'
 import {
   DMSans_400Regular,
   DMSans_500Medium,
   DMSans_700Bold,
   useFonts
 } from '@expo-google-fonts/dm-sans'
-import { PaperProvider } from 'react-native-paper'
+import { useTheme } from 'react-native-paper'
 
 const SCREENS: {
   name: string
@@ -33,8 +32,39 @@ const SCREENS: {
   { name: 'settings/index', title: 'Settings' }
 ]
 
+function AppContent() {
+  const theme = useTheme()
+
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+        headerTitleStyle: { fontFamily: 'DMSans_500Medium' },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: theme.colors.background }
+      }}
+    >
+      {SCREENS.map(s => (
+        <Stack.Screen
+          key={s.name}
+          name={s.name}
+          options={{
+            title: s.title,
+            headerTitle: s.headerTitle,
+            headerShown: s.headerShown,
+            presentation: s.modal ? ('modal' as const) : undefined
+          }}
+        />
+      ))}
+    </Stack>
+  )
+}
+
 export default function Layout() {
-  const isDark = useColorScheme() === 'dark'
+  const [savedMode, setSavedMode] = useState<ThemeMode>('system')
+
+  const [loaded, setLoaded] = useState(false)
 
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
@@ -42,37 +72,22 @@ export default function Layout() {
     DMSans_700Bold
   })
 
-  const theme = isDark ? darkTheme : lightTheme
+  useEffect(() => {
+    ;(async () => {
+      const stored = await getSetting('theme_mode', 'system')
 
-  if (!fontsLoaded) return null
+      setSavedMode(stored as ThemeMode)
+      setLoaded(true)
+    })()
+  }, [])
+
+  if (!fontsLoaded || !loaded) return null
 
   return (
-    <PaperProvider theme={theme}>
+    <ThemeProvider savedMode={savedMode}>
       <AlertProvider>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: theme.colors.surface },
-            headerTintColor: theme.colors.onSurface,
-            headerTitleStyle: { fontFamily: 'DMSans_500Medium' },
-            headerShadowVisible: false,
-            contentStyle: { backgroundColor: theme.colors.background }
-          }}
-        >
-          {SCREENS.map(s => (
-            <Stack.Screen
-              key={s.name}
-              name={s.name}
-              options={{
-                title: s.title,
-                headerTitle: s.headerTitle,
-                headerShown: s.headerShown,
-                presentation: s.modal ? ('modal' as const) : undefined
-              }}
-            />
-          ))}
-        </Stack>
+        <AppContent />
       </AlertProvider>
-    </PaperProvider>
+    </ThemeProvider>
   )
 }

@@ -16,6 +16,13 @@ export interface SigStickSearchResult {
   thumbnail: string
 }
 
+export interface SigStickPack {
+  id: string
+  title: string
+  coverUrl: string | null
+  stickers: string[]
+}
+
 export interface ConvertResult {
   success: boolean
   width: number
@@ -34,25 +41,4 @@ export interface StickerModuleNative {
   isStickerPackWhitelisted(identifier: string): Promise<boolean>
   validateStickerPack(identifier: string): Promise<ValidationResult>
   refreshContentProvider(): Promise<void>
-}
-
-export interface ImageConverterModuleNative {
-  convertToWebP(
-    sourceUri: string,
-    outputPath: string,
-    maxDimension: number
-  ): Promise<ConvertResult>
-  generateTrayIcon(
-    sourceUri: string,
-    outputPath: string
-  ): Promise<ConvertResult>
-}
-
-export type RootStackParamList = {
-  Home: undefined
-  CreatePack: undefined
-  EditPack: { packId: string }
-  SigStickSearch: undefined
-  SigStickResult: { packId: string; packTitle: string; stickers: string[] }
-  PackDetail: { packId: string }
 }

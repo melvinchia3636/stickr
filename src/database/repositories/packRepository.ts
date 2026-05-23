@@ -20,13 +20,14 @@ export async function getPackWithStickers(
     .from(stickerPacks)
     .where(eq(stickerPacks.id, id))
 
-  const pack = rows.length > 0 ? rows[0] : null
+  if (!rows.length) {
+    return null
+  }
 
-  if (!pack) return null
-
-  const stickers = await getStickersForPack(id)
-
-  return { ...pack, stickers }
+  return {
+    ...rows[0],
+    stickers: await getStickersForPack(id)
+  }
 }
 
 export async function getPackWithStickersBySigstickId(
@@ -50,7 +51,8 @@ export async function createPack(
   name: string,
   identifier: string,
   trayImageFile: string | null,
-  sigstickId?: string | null
+  sigstickId?: string | null,
+  isAnimated: boolean = false
 ): Promise<void> {
   await getDrizzle()
     .insert(stickerPacks)
@@ -61,8 +63,22 @@ export async function createPack(
       trayImageFile,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      sigstickId: sigstickId || null
+      sigstickId: sigstickId || null,
+      isAnimated
     })
+}
+
+export async function updatePackAnimatedStatus(
+  id: string,
+  isAnimated: boolean
+): Promise<void> {
+  await getDrizzle()
+    .update(stickerPacks)
+    .set({
+      isAnimated,
+      updatedAt: Date.now()
+    })
+    .where(eq(stickerPacks.id, id))
 }
 
 export async function updatePackName(id: string, name: string): Promise<void> {

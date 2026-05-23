@@ -9,7 +9,8 @@ export const stickerPacks = sqliteTable('sticker_packs', {
   imageDataVersion: text('image_data_version').default('1'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
-  sigstickId: text('sigstick_id')
+  sigstickId: text('sigstick_id'),
+  isAnimated: integer('is_animated', { mode: 'boolean' }).default(false).notNull()
 })
 
 export const stickers = sqliteTable('stickers', {

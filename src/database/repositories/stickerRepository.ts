@@ -40,3 +40,10 @@ export async function getStickerCountForPack(packId: string): Promise<number> {
 export async function deleteSticker(id: string): Promise<void> {
   await getDrizzle().delete(stickers).where(eq(stickers.id, id))
 }
+
+export async function getAllStickers(): Promise<Sticker[]> {
+  return getDrizzle()
+    .select()
+    .from(stickers)
+    .orderBy(asc(stickers.sortOrder))
+}

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Image, TouchableOpacity, View } from 'react-native'
+import { Image, TouchableOpacity, useWindowDimensions, View } from 'react-native'
 
 import { useAlertStore } from '@/components/ui/AlertManager'
 import { launchImageLibrary } from 'react-native-image-picker'
@@ -17,7 +17,11 @@ export default function StickerSection({
 }) {
   const t = useTheme()
 
+  const { width } = useWindowDimensions()
+
   const { openAlert } = useAlertStore()
+
+  const itemSize = (width - 32 - 24) / 4
 
   const pickImages = () =>
     launchImageLibrary(
@@ -70,14 +74,14 @@ export default function StickerSection({
             <View
               key={index}
               style={{
-                width: 80,
-                height: 80,
+                width: itemSize,
+                height: itemSize,
                 borderRadius: 12,
                 overflow: 'hidden',
                 backgroundColor: t.colors.surfaceVariant
               }}
             >
-              <Image source={{ uri }} style={{ width: 80, height: 80 }} />
+              <Image source={{ uri }} style={{ width: itemSize, height: itemSize }} />
               <TouchableOpacity
                 style={{
                   position: 'absolute',

@@ -11,11 +11,15 @@ import { Icon, IconButton, Text, useTheme } from 'react-native-paper'
 export default function PackCard({
   pack,
   stickerCount,
+  whatsappStatus,
+  isAnimated,
   onPress,
   onMenuPress
 }: {
   pack: StickerPack
   stickerCount: number
+  whatsappStatus?: boolean[]
+  isAnimated?: boolean
   onPress: () => void
   onMenuPress: (x: number, y: number) => void
 }) {
@@ -24,6 +28,92 @@ export default function PackCard({
   const traySource = pack.trayImageFile
     ? { uri: `file://${getStickerPath(pack.identifier, pack.trayImageFile)}` }
     : null
+
+  let statusBadge = null
+
+  if (whatsappStatus && whatsappStatus.length > 0) {
+    const isFullyAdded = whatsappStatus.every(Boolean)
+
+    const isPartiallyAdded = whatsappStatus.some(Boolean)
+
+    const color = isFullyAdded
+      ? '#10b981'
+      : isPartiallyAdded
+        ? '#f59e0b'
+        : '#64748b'
+
+    const icon = isFullyAdded
+      ? 'check-circle'
+      : isPartiallyAdded
+        ? 'alert-circle-outline'
+        : 'plus-circle-outline'
+
+    const label = isFullyAdded
+      ? 'Added'
+      : isPartiallyAdded
+        ? 'Partial'
+        : 'Not Added'
+
+    statusBadge = (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: `${color}15`,
+          paddingHorizontal: 8,
+          paddingVertical: 2,
+          borderRadius: 6,
+          gap: 4
+        }}
+      >
+        <Icon color={color} size={13} source={icon} />
+
+        <Text
+          style={{
+            color,
+            fontSize: 13,
+            fontWeight: '600',
+            lineHeight: 16
+          }}
+        >
+          {label}
+        </Text>
+      </View>
+    )
+  }
+
+  let animatedBadge = null
+
+  if (isAnimated) {
+    const animColor = '#8b5cf6'
+
+    animatedBadge = (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: `${animColor}15`,
+          paddingHorizontal: 8,
+          paddingVertical: 2,
+          borderRadius: 6,
+          gap: 4
+        }}
+      >
+        <Icon color={animColor} size={13} source="motion-play" />
+
+        <Text
+          style={{
+            color: animColor,
+            fontSize: 13,
+            fontWeight: '600',
+            lineHeight: 16
+          }}
+        >
+          Animated
+        </Text>
+      </View>
+    )
+  }
 
   return (
     <TouchableOpacity
@@ -70,7 +160,22 @@ export default function PackCard({
           />
         )}
       </View>
+
       <View style={{ flex: 1, marginLeft: 12 }}>
+        {(statusBadge || animatedBadge) && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 6,
+              gap: 6
+            }}
+          >
+            {statusBadge}
+            {animatedBadge}
+          </View>
+        )}
+
         <Text
           numberOfLines={1}
           style={{ color: t.colors.onSurface }}
@@ -78,6 +183,7 @@ export default function PackCard({
         >
           {pack.name}
         </Text>
+
         <Text
           style={{ color: t.colors.onSurfaceVariant, marginTop: 2 }}
           variant="bodySmall"
@@ -85,6 +191,7 @@ export default function PackCard({
           {stickerCount} sticker{stickerCount !== 1 ? 's' : ''}
         </Text>
       </View>
+
       <IconButton
         icon="dots-vertical"
         size={20}

@@ -4,14 +4,25 @@ import { useRouter } from 'expo-router'
 
 import { useAlertStore } from '@/components/ui/AlertManager'
 import ProgressBar from '@/components/ui/ProgressBar'
-import { addSticker, createPack } from '@/database/repositories'
+import {
+  addSticker,
+  createPack,
+  getStickersForPack,
+  updatePackAnimatedStatus
+} from '@/database/repositories'
+import { useEnsureServerHealthy } from '@/hooks/useEnsureServerHealthy'
 import { regenerateContentsJson } from '@/services/contentsJsonGenerator'
 import {
   TRAY_FILE_NAME,
   convertToStickerWebP,
+  ensureAnimationConsistency,
   generateTrayIcon
 } from '@/services/imageProcessor'
-import { ensureStickersDir } from '@/services/stickerFileManager'
+import {
+  ensurePackDir,
+  ensureStickersDir,
+  hasAnimatedStickers
+} from '@/services/stickerFileManager'
 import { refreshContentProvider } from '@/services/whatsappBridge'
 import RNFS from 'react-native-fs'
 import 'react-native-get-random-values'
@@ -38,6 +49,8 @@ export default function CreatePackButton({
   const [progress, setProgress] = useState(0)
 
   const [total, setTotal] = useState(0)
+
+  const ensureServerHealthy = useEnsureServerHealthy()
 
   const handleCreate = async () => {
     const name = packName.trim()
@@ -67,6 +80,15 @@ export default function CreatePackButton({
     }
 
     setLoading(true)
+
+    const healthy = await ensureServerHealthy()
+
+    if (!healthy) {
+      setLoading(false)
+
+      return
+    }
+
     setTotal(selectedImages.length)
     setProgress(0)
 
@@ -74,6 +96,8 @@ export default function CreatePackButton({
       await ensureStickersDir()
 
       const identifier = uuid()
+
+      await ensurePackDir(identifier)
 
       await createPack(name, identifier, TRAY_FILE_NAME)
 
@@ -95,6 +119,23 @@ export default function CreatePackButton({
         `file://${RNFS.DocumentDirectoryPath}/stickers/${identifier}/sticker_001.webp`,
         identifier
       )
+
+      const packStickers = []
+
+      for (let i = 0; i < selectedImages.length; i++) {
+        packStickers.push({
+          imageFileName: `sticker_${String(i + 1).padStart(3, '0')}.webp`
+        })
+      }
+
+      await ensureAnimationConsistency(identifier, packStickers)
+
+      const packStickersList = await getStickersForPack(identifier)
+
+      const hasAnim = await hasAnimatedStickers(identifier, packStickersList)
+
+      await updatePackAnimatedStatus(identifier, hasAnim)
+
       await regenerateContentsJson(identifier)
       await refreshContentProvider()
       setLoading(false)
