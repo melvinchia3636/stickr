@@ -10,7 +10,7 @@ echo "📦 stickr Android prebuild"
 
 # --- Backup ---
 if [ ! -d "$SRC" ]; then
-  echo "⚠️  No custom native source found at $SRC — skipping backup"
+  echo "⚠️  No custom native source found at $SRC - skipping backup"
 else
   mkdir -p "$BACKUP_DIR"
   cp "$SRC"/*.kt "$BACKUP_DIR/"

@@ -9,7 +9,7 @@ import { getWebPInfo, isWebPFile } from './webp-info'
 // WhatsApp sticker size limits:
 //   - Static: 100 KB max
 //   - Animated: 500 KB max
-// These limits are strict — WhatsApp will reject stickers that exceed them.
+// These limits are strict - WhatsApp will reject stickers that exceed them.
 // This function progressively lowers quality/fps until the output fits within
 // the respective limit.
 

@@ -2,8 +2,8 @@ import fs from 'fs'
 import path from 'path'
 
 import { execAsync } from '../utils'
-import { getWebPInfo, isWebPFile } from './webp-info'
 import { SCALE_BASE, scaleFilter } from './filters'
+import { getWebPInfo, isWebPFile } from './webp-info'
 
 // Takes any image/video/WebP input and produces a 512×512 WebP sticker
 // compliant with WhatsApp requirements.
@@ -25,7 +25,7 @@ export async function processStickerInput(
   if (isWebPFile(inputPath)) {
     const info = await getWebPInfo(inputPath)
 
-    // Case 1: animated WebP — extract each frame, scale to 512×512, re-encode, stitch back.
+    // Case 1: animated WebP - extract each frame, scale to 512×512, re-encode, stitch back.
     if (info.isAnimated && info.frameCount > 1) {
       const scaledPngs: string[] = []
 
@@ -79,7 +79,7 @@ export async function processStickerInput(
       return
     }
 
-    // Case 2: static WebP — single frame path.
+    // Case 2: static WebP - single frame path.
     const framePng = path.join(tempDir, 'frame_001.png')
 
     const scaledPng = path.join(tempDir, 'scaled_001.png')
@@ -103,9 +103,7 @@ export async function processStickerInput(
       await execAsync(
         `webpmux -frame "${tempWebp}" +500+0+0+1-b -frame "${tempWebp}" +500+0+0+1-b -o "${tempOutput}"`
       )
-      await execAsync(
-        `webpmux -set loop 0 "${tempOutput}" -o "${outputPath}"`
-      )
+      await execAsync(`webpmux -set loop 0 "${tempOutput}" -o "${outputPath}"`)
     } else {
       await execAsync(
         `cwebp -exact -q ${quality} "${scaledPng}" -o "${outputPath}"`
@@ -130,7 +128,7 @@ export async function processStickerInput(
     throw new Error('No PNG frames were extracted from the input source')
   }
 
-  // Single frame — output a static (or force-animated) WebP.
+  // Single frame - output a static (or force-animated) WebP.
   if (pngFiles.length === 1) {
     const rawFramePath = path.join(tempDir, pngFiles[0])
 
@@ -154,7 +152,7 @@ export async function processStickerInput(
       )
     }
   } else {
-    // Multiple frames — encode each as a WebP, then assemble with webpmux.
+    // Multiple frames - encode each as a WebP, then assemble with webpmux.
     const frameWebps: string[] = []
 
     for (let i = 0; i < pngFiles.length; i++) {

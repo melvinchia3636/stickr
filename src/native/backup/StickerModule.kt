@@ -143,7 +143,7 @@ class StickerModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
                     errors.add("tray must be PNG but mime is $trayMime")
                 }
                 if (WebPUtils.isAnimatedWebP(trayFile)) {
-                    errors.add("tray file is animated WebP — must be static PNG")
+                    errors.add("tray file is animated WebP - must be static PNG")
                 }
             }
         }
@@ -214,7 +214,7 @@ class StickerModule(reactContext: ReactApplicationContext) : ReactContextBaseJav
         }
 
         if (hasAnimated && !animatedFlag) {
-            errors.add("pack contains animated stickers but animated_sticker_pack is false — must be true")
+            errors.add("pack contains animated stickers but animated_sticker_pack is false - must be true")
         }
         if (!hasAnimated && animatedFlag) {
             warnings.add("animated_sticker_pack is true but no animated stickers found")
