@@ -8,11 +8,11 @@
 
 ## 🤔 The Problem
 
-I have dozens of sacabambaspis sticker packs I wanted to download from the Sigstick official app, but a 30-second ad shows up on every single pack download. That's a massive waste of time, and you have to pay just to remove those pesky ads. I needed a way to download and manage sticker packs without sitting through ads, and I wanted full control over conversion quality for my own custom stickers without relying on bloated, ad-ridden third-party apps.
+I have dozens of Sacabambaspis sticker packs I wanted to download from the Sigstick official app, but a 30-second ad shows up on every single pack download. That's a massive waste of time, and you have to pay just to remove those pesky ads. I needed a way to download and manage sticker packs without sitting through ads, and I wanted full control over conversion quality for my own custom stickers without relying on bloated, ad-ridden third-party apps.
 
 ## ✅ The Solution
 
-So yeah, instead of wasting time sitting through ads, I've decided to waste more time developing my own custom app. Initially I was hoping to ship the conversion mechanism alongside within the app itself, but I faced a lot of issues with native FFmpeg bindings and cross-platform compatibility. So I ended up decoupling it into a separate self-hosted backend server. 
+So yeah, instead of wasting time sitting through ads, I've decided to waste more time developing my own custom app. Initially, I was hoping to ship the conversion mechanism within the app itself, but I faced a lot of issues with native FFmpeg bindings and cross-platform compatibility. So I ended up decoupling it into a separate self-hosted backend server. 
 
 The result is a React Native (Expo) mobile app paired with a lightweight Express.js + FFmpeg conversion server. Pick images from your gallery, paste a URL, or download packs from sigstick.com - the server handles conversion with automatic quality compression to meet WhatsApp's strict size limits. All sticker data is stored locally in SQLite. No ads, no accounts, no cloud dependency.
 
@@ -29,7 +29,10 @@ The result is a React Native (Expo) mobile app paired with a lightweight Express
 
 ## 🖥 Screenshots
 
-*(Screenshots coming soon)*
+<img width="31%" alt="image" src="https://github.com/user-attachments/assets/dbfe3d75-76f6-4040-a32d-361ba73f8628" />
+<img width="31%" alt="image" src="https://github.com/user-attachments/assets/96651a4e-68d3-4c0d-bb7e-16407b132eb1" />
+<img width="31%" alt="image" src="https://github.com/user-attachments/assets/d62b0a5c-02f9-48a2-ae63-f59dc88c2dcf" />
+
 
 ## 🔬 Technologies Used
 
@@ -39,7 +42,7 @@ The result is a React Native (Expo) mobile app paired with a lightweight Express
 ![skills](https://img.shields.io/badge/-EXPRESS-FF0000?style=for-the-badge&logo=express&logoColor=white&color=000000)
 ![skills](https://img.shields.io/badge/-FFMPEG-FF0000?style=for-the-badge&logo=ffmpeg&logoColor=white&color=007808)
 ![skills](https://img.shields.io/badge/-SQLITE-FF0000?style=for-the-badge&logo=sqlite&logoColor=white&color=003B57)
-![skills](https://img.shields.io/badge/-DRIZZLE-FF0000?style=for-the-badge&logo=drizzle&logoColor=white&color=C5F74F)
+![skills](https://img.shields.io/badge/-DRIZZLE-000000?style=for-the-badge&logo=drizzle&logoColor=black&color=C5F74F)
 ![skills](https://img.shields.io/badge/-REACT_NATIVE_PAPER-FF0000?style=for-the-badge&logo=materialdesign&logoColor=white&color=757575)
 
 **Mobile App:** React Native, Expo, TypeScript, Drizzle ORM, React Native Paper, Reanimated  
@@ -51,8 +54,7 @@ The result is a React Native (Expo) mobile app paired with a lightweight Express
 ### Prerequisites
 
 - Bun (or Node.js 18+)
-- FFmpeg installed on your system
-- WebP tools: `cwebp`, `dwebp`, `webpmux`
+- CLI libraries: `ffmpeg` `cwebp`, `dwebp`, `webpmux`
 - Android device/emulator for the mobile app
 
 ### Server
